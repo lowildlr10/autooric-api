@@ -63,7 +63,11 @@ class OfficialReceiptController extends Controller
         }
 
         return response()->json([
-            'data' => $officialReceipt
+            'data' => [
+                'data' => $officialReceipt,
+                'message' => 'Official receipt has been created',
+                'success' => 1
+            ]
         ], 201);
     }
 
