@@ -8,6 +8,7 @@ use App\Http\Controllers\PrintController;
 use App\Http\Controllers\ParticularController;
 use App\Http\Controllers\DiscountController;
 use App\Http\Controllers\PayorController;
+use App\Http\Controllers\PaperSizeController;
 
 /*
 |--------------------------------------------------------------------------
@@ -61,6 +62,11 @@ Route::group([
         Route::apiResource('/discounts', 'App\Http\Controllers\DiscountController');
         Route::get('/discounts-paginated', [DiscountController::class, 'indexPaginated'])
             ->name('discounts.paginated');
+
+        // Route api for paper size
+        Route::apiResource('/paper-sizes', 'App\Http\Controllers\PaperSizeController');
+        Route::get('/paper-sizes-paginated', [PaperSizeController::class, 'indexPaginated'])
+            ->name('paper-sizes.paginated');
 
         // Print api routes
         Route::get('/print/{printType}', [PrintController::class, 'index'])->name('print.index');

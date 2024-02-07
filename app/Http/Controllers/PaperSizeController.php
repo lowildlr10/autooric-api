@@ -13,7 +13,27 @@ class PaperSizeController extends Controller
      */
     public function index()
     {
-        //
+        // Get all the paper sizes
+        $paperSizes = PaperSize::orderBy('paper_name')
+            ->get();
+
+        return response()->json([
+            'data' => $paperSizes
+        ]);
+    }
+
+    /**
+     * Display a listing of the resource.
+     */
+    public function indexPaginated()
+    {
+        // Get all the paper sizes
+        $paperSizes = PaperSize::orderBy('paper_name')
+            ->paginate(50);
+
+        return response()->json([
+            'data' => $paperSizes
+        ]);
     }
 
     /**
