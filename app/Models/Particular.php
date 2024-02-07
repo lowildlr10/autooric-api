@@ -19,6 +19,11 @@ class Particular extends Model
         'order_no'
     ];
 
+    protected $hidden = [
+        'created_at',
+        'updated_at'
+    ];
+
     // automatic `id` uuid generation for primary key
     protected static function boot()
     {
@@ -26,5 +31,10 @@ class Particular extends Model
         static::creating(function ($model) {
             $model->{$model->getKeyName()} = \Illuminate\Support\Str::uuid();
         });
+    }
+
+    public function category()
+    {
+        return $this->belongsTo(Category::class, 'category_id', 'id');
     }
 }

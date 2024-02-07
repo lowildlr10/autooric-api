@@ -14,7 +14,29 @@ class ParticularController extends Controller
      */
     public function index()
     {
-        //
+        // Get all the particulars
+        $particulars = Particular::with('category:id,category_name')
+            ->orderBy('particular_name')
+            ->get();
+
+        return response()->json([
+            'data' => $particulars
+        ]);
+    }
+
+    /**
+     * Display a listing of the resource.
+     */
+    public function indexPaginated()
+    {
+        // Get all the particulars
+        $particulars = Particular::with('category:id,category_name')
+            ->orderBy('particular_name')
+            ->paginate(50);
+
+        return response()->json([
+            'data' => $particulars
+        ]);
     }
 
     /**

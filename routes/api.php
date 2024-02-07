@@ -5,6 +5,8 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\OfficialReceiptController;
 use App\Http\Controllers\PrintController;
+use App\Http\Controllers\ParticularController;
+use App\Http\Controllers\DiscountController;
 
 /*
 |--------------------------------------------------------------------------
@@ -46,9 +48,13 @@ Route::group([
 
         // Route api for particular
         Route::apiResource('/particulars', 'App\Http\Controllers\ParticularController');
+        Route::get('/particulars-paginated', [ParticularController::class, 'indexPaginated'])
+            ->name('particulars.paginated');
 
         // Route api for discount
         Route::apiResource('/discounts', 'App\Http\Controllers\DiscountController');
+        Route::get('/discounts-paginated', [DiscountController::class, 'indexPaginated'])
+            ->name('discounts.paginated');
 
         // Print api routes
         Route::get('/print/{printType}', [PrintController::class, 'index'])->name('print.index');

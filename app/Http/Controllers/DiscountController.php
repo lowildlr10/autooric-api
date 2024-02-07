@@ -13,7 +13,26 @@ class DiscountController extends Controller
      */
     public function index()
     {
-        //
+        // Get all the discounts
+        $discounts = Discount::orderBy('discount_name')->get();
+
+        return response()->json([
+            'data' => $discounts
+        ]);
+    }
+
+    /**
+     * Display a listing of the resource.
+     */
+    public function indexPaginated()
+    {
+        // Get all the discounts
+        $discounts = Discount::orderBy('discount_name')
+            ->paginate(50);
+
+        return response()->json([
+            'data' => $discounts
+        ]);
     }
 
     /**
