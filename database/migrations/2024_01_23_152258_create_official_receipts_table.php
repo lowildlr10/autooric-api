@@ -20,7 +20,7 @@ return new class extends Migration
             $table->date('receipt_date');
             $table->date('deposited_date')->nullable();
             $table->date('cancelled_date')->nullable();
-            $table->integer('or_no')->unsigned();
+            $table->integer('or_no')->unsigned()->unique();
             $table->uuid('payor_id');
             $table->foreign('payor_id')
                 ->references('id')

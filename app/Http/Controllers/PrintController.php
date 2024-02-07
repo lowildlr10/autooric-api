@@ -46,10 +46,17 @@ class PrintController extends Controller
 
     public function printOfficialReceipt($orId, $paperSizeId)
     {
-        // Get the official receipt
-        $officialReceipt = OfficialReceipt::with([
+        $with = [
             'accountablePersonel', 'payor', 'natureCollection', 'discount'
-        ])->find($orId);
+        ];
+        // Get the official receipt
+        $officialReceipt = OfficialReceipt::with($with)->find($orId);
+
+        if (!$officialReceipt) {
+            $officialReceipt = OfficialReceipt::with($with)
+                ->where('or_no', $orId)
+                ->first();
+        }
 
         $orDate = date('m/d/Y', strtotime($officialReceipt->receipt_date));
         $payorName = strtoupper($officialReceipt->payor->payor_name);
