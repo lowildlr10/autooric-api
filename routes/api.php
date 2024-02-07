@@ -7,6 +7,7 @@ use App\Http\Controllers\OfficialReceiptController;
 use App\Http\Controllers\PrintController;
 use App\Http\Controllers\ParticularController;
 use App\Http\Controllers\DiscountController;
+use App\Http\Controllers\PayorController;
 
 /*
 |--------------------------------------------------------------------------
@@ -50,6 +51,11 @@ Route::group([
         Route::apiResource('/particulars', 'App\Http\Controllers\ParticularController');
         Route::get('/particulars-paginated', [ParticularController::class, 'indexPaginated'])
             ->name('particulars.paginated');
+
+        // Route api for payor
+        Route::apiResource('/payors', 'App\Http\Controllers\PayorController');
+        Route::get('/payors-paginated', [PayorController::class, 'indexPaginated'])
+            ->name('payors.paginated');
 
         // Route api for discount
         Route::apiResource('/discounts', 'App\Http\Controllers\DiscountController');

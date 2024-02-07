@@ -13,7 +13,27 @@ class PayorController extends Controller
      */
     public function index()
     {
-        //
+        // Get all the payors
+        $payors = Payor::orderBy('payor_name')
+            ->get();
+
+        return response()->json([
+            'data' => $payors
+        ]);
+    }
+
+    /**
+     * Display a listing of the resource.
+     */
+    public function indexPaginated()
+    {
+        // Get all the payors
+        $payors = Payor::orderBy('payor_name')
+            ->paginate(50);
+
+        return response()->json([
+            'data' => $payors
+        ]);
     }
 
     /**
