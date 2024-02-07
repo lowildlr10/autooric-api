@@ -15,7 +15,12 @@ class OfficialReceiptController extends Controller
     public function index()
     {
         // Get all official receipts paginated
-        $officialReceipts = OfficialReceipt::paginate(50);
+        $officialReceipts = OfficialReceipt::with([
+            'natureCollection:id,particular_name',
+            'payor:id,payor_name',
+            'discount:id,discount_name'
+        ])
+        ->paginate(50);
 
         return response()->json([
             'data' => $officialReceipts
