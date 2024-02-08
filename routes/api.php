@@ -9,6 +9,7 @@ use App\Http\Controllers\ParticularController;
 use App\Http\Controllers\DiscountController;
 use App\Http\Controllers\PayorController;
 use App\Http\Controllers\PaperSizeController;
+use App\Http\Controllers\CategoryController;
 
 /*
 |--------------------------------------------------------------------------
@@ -47,6 +48,11 @@ Route::group([
             ->name('official-receipts.deposit');
         Route::patch('/official-receipts/{official_receipt}/cancel', [OfficialReceiptController::class, 'cancel'])
             ->name('official-receipts.cancel');
+
+        // Route api for categories
+        Route::apiResource('/categories', 'App\Http\Controllers\CategoryController');
+        Route::get('/categories-paginated', [CategoryController::class, 'indexPaginated'])
+            ->name('categories.paginated');
 
         // Route api for particular
         Route::apiResource('/particulars', 'App\Http\Controllers\ParticularController');

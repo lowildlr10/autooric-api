@@ -13,7 +13,26 @@ class CategoryController extends Controller
      */
     public function index()
     {
-        //
+        // Get all the categories
+        $categories = Category::orderBy('category_name')->get();
+
+        return response()->json([
+            'data' => $categories
+        ]);
+    }
+
+    /**
+     * Display a listing of the resource.
+     */
+    public function indexPaginated()
+    {
+        // Get all the categories
+        $categories = Category::orderBy('category_name')
+            ->paginate(50);
+
+        return response()->json([
+            'data' => $categories
+        ]);
     }
 
     /**
