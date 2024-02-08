@@ -11,6 +11,7 @@ use App\Http\Controllers\PayorController;
 use App\Http\Controllers\PaperSizeController;
 use App\Http\Controllers\CategoryController;
 
+
 /*
 |--------------------------------------------------------------------------
 | API Routes

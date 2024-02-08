@@ -150,6 +150,18 @@ class PrintController extends Controller
         $pdf->Cell(1.85, 0, '', 0, 0, 'L');
         $pdf->Cell(1.75, 0, $personelName, 0, 1, 'C');
 
-        $pdf->Output($fileame, 'I');
+        $pdfBlob = $pdf->Output($fileame, 'S');
+        $pdfBase64 = base64_encode($pdfBlob);
+
+        header('Content-Type: application/json');
+        header('Access-Control-Allow-Origin: *');
+
+        echo json_encode([
+            'data' => [
+                'filename' => $fileame,
+                'pdf' => $pdfBase64,
+                'success' => 1
+            ]
+        ], 201);
     }
 }

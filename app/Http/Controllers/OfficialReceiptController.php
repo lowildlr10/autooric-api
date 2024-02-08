@@ -56,7 +56,7 @@ class OfficialReceiptController extends Controller
         } catch (\Throwable $th) {
             return response()->json([
                 'data' => [
-                    'message' => 'Failed to create official receipt',
+                    'message' => $th->getCode() === '23000' ? 'Duplicate official receipt number' : 'Failed to create official receipt',
                     'error' => 1
                 ]
             ], 422);
