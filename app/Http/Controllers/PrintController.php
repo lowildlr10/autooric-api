@@ -92,6 +92,7 @@ class PrintController extends Controller
         $pdf->SetAutoPageBreak(FALSE, 0);
         $pdf->setImageScale(100);
         $pdf->setPrintHeader(false);
+        $pdf->setPrintFooter(false);
 
         // Main content
         $pdf->AddPage();
