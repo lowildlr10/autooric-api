@@ -118,8 +118,10 @@ class PrintController extends Controller
         $pdf->Cell(1.6, 0, '', 0, 0, 'L');
         $pdf->Cell(2, 0, $amount, 0, 1, 'R');
 
-        $pdf->SetXY(0.25, 5.64);
-        $pdf->Cell(3.6, 0, $amountInWords, 0, 1, 'L');
+        $pdf->SetFont('helvetica', 'B', strlen($amountInWords) >= 35 ? 8 : 11);
+
+        $pdf->SetXY(0.25, strlen($amountInWords) >= 35 ? 5.6 : 5.64);
+        $pdf->MultiCell(3.6, 0, $amountInWords, 0, 'L', 0, 1);
 
         $pdf->SetFont('zapfdingbats', '', 12);
 
