@@ -24,7 +24,7 @@ class StoreDiscountRequest extends FormRequest
     {
         return [
             // Validate the request
-            'discount_name' => 'required|unique:discounts,discount_name',
+            'discount_name' => 'required',
             'percent' => 'required'
         ];
     }
