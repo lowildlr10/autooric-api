@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('discounts', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->string('discount_name');
+            $table->string('discount_name')->unique();
             $table->double('percent', 10, 2);
             $table->boolean('is_active')->default(true);
             $table->timestamps();

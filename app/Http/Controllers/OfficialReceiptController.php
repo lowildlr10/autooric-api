@@ -48,9 +48,7 @@ class OfficialReceiptController extends Controller
                 'nature_collection_id' => $request->nature_collection_id,
                 'amount' => $request->amount,
                 'discount_id' => $request->discount_id,
-                'deposit' => $request->deposit,
                 'amount_words' => $request->amount_words,
-                'card_no' => $request->card_no,
                 'payment_mode' => $request->payment_mode
             ]);
         } catch (\Throwable $th) {

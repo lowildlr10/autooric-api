@@ -61,11 +61,7 @@ class PrintController extends Controller
         $orDate = date('m/d/Y', strtotime($officialReceipt->receipt_date));
         $payorName = strtoupper($officialReceipt->payor->payor_name);
         $natureCollection = strtoupper($officialReceipt->natureCollection->particular_name);
-        $amount = number_format(
-            $officialReceipt->discount ?
-            $officialReceipt->amount - ($officialReceipt->amount * $officialReceipt->discount->percent / 100) :
-            $officialReceipt->amount
-        , 2);
+        $amount = number_format($officialReceipt->amount, 2);
         $amountInWords = strtoupper($officialReceipt->amount_words);
         $personelName = strtoupper(
             $officialReceipt->accountablePersonel->first_name . ' ' .
