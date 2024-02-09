@@ -36,7 +36,12 @@ class OfficialReceiptController extends Controller
         $request->validated();
 
         // Create a new payor if not exists and get the id
-        $payor = Payor::firstOrCreate(['payor_name' => $request->payor_id]);
+        $payor = Payor::find($request->payor_id);
+        if (!$payor) {
+            $payor = Payor::create([
+                'payor_name' => $request->payor_id,
+            ]);
+        }
 
         try {
             // Create a new official receipt
