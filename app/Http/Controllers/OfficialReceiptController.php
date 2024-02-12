@@ -6,21 +6,40 @@ use App\Models\OfficialReceipt;
 use App\Models\Payor;
 use App\Http\Requests\StoreOfficialReceiptRequest;
 use App\Http\Requests\UpdateOfficialReceiptDepositRequest;
+use Illuminate\Http\Request;
+use Illuminate\Database\Eloquent\Builder;
 
 class OfficialReceiptController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
+        $search = trim($request->search) ?? '';
+
+        try {
+            $dateSearch = date_format(date_create($search), 'Y-m-d');
+        } catch (\Throwable $th) {
+            $dateSearch = '';
+        }
+
         // Get all official receipts paginated
         $officialReceipts = OfficialReceipt::with([
             'natureCollection:id,particular_name',
             'payor:id,payor_name',
             'discount:id,discount_name'
         ])
-        ->paginate(50);
+        ->where('or_no', 'LIKE', "%{$search}%")
+        ->orWhereRelation('natureCollection', 'particular_name', 'LIKE', "%{$search}%")
+        ->orWhereRelation('payor', 'payor_name', 'LIKE', "%{$search}%")
+        ->orWhereRelation('discount', 'discount_name', 'LIKE', "%{$search}%");
+
+        if ($dateSearch) {
+            $officialReceipts = $officialReceipts->orWhere('receipt_date', 'LIKE', "%{$dateSearch}%");
+        }
+
+        $officialReceipts = $officialReceipts->paginate(50);
 
         return response()->json([
             'data' => $officialReceipts
