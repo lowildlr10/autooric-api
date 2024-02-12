@@ -17,7 +17,7 @@ class OfficialReceipt extends Model
     public $incrementing = false;
 
     protected $fillable = [
-        'accountable_personel_id',
+        'accountable_personnel_id',
         'receipt_date',
         'deposited_date',
         'cancelled_date',
@@ -42,9 +42,9 @@ class OfficialReceipt extends Model
         });
     }
 
-    public function accountablePersonel()
+    public function accountablePersonnel()
     {
-        return $this->belongsTo(User::class, 'accountable_personel_id');
+        return $this->belongsTo(User::class, 'accountable_personnel_id');
     }
 
     public function payor()

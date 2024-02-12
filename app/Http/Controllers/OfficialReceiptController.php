@@ -29,12 +29,15 @@ class OfficialReceiptController extends Controller
             'natureCollection:id,particular_name',
             'payor:id,payor_name',
             'discount:id,discount_name,percent',
+            'accountablePersonnel:id,first_name,last_name'
         ])
         ->where('or_no', 'LIKE', "%{$search}%")
         ->orWhere('amount', 'LIKE', "%{$search}%")
         ->orWhereRelation('natureCollection', 'particular_name', 'LIKE', "%{$search}%")
         ->orWhereRelation('payor', 'payor_name', 'LIKE', "%{$search}%")
-        ->orWhereRelation('discount', 'discount_name', 'LIKE', "%{$search}%");
+        ->orWhereRelation('discount', 'discount_name', 'LIKE', "%{$search}%")
+        ->orWhereRelation('accountablePersonnel', 'first_name', 'LIKE', "%{$search}%")
+        ->orWhereRelation('accountablePersonnel', 'last_name', 'LIKE', "%{$search}%");
 
         if ($dateSearch) {
             $officialReceipts = $officialReceipts->orWhere('receipt_date', 'LIKE', "%{$dateSearch}%");
@@ -69,7 +72,7 @@ class OfficialReceiptController extends Controller
         try {
             // Create a new official receipt
             $officialReceipt = OfficialReceipt::create([
-                'accountable_personel_id' => $request->user()->id,
+                'accountable_personnel_id' => $request->user()->id,
                 'receipt_date' => $request->receipt_date,
                 'or_no' => $request->or_no,
                 'payor_id' => $payor->id,

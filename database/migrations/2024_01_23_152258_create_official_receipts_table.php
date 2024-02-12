@@ -13,8 +13,8 @@ return new class extends Migration
     {
         Schema::create('official_receipts', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->uuid('accountable_personel_id');
-            $table->foreign('accountable_personel_id')
+            $table->uuid('accountable_personnel_id');
+            $table->foreign('accountable_personnel_id')
                 ->references('id')
                 ->on('users');
             $table->date('receipt_date');

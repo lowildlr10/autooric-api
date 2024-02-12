@@ -47,7 +47,7 @@ class PrintController extends Controller
     public function printOfficialReceipt($orId, $paperSizeId)
     {
         $with = [
-            'accountablePersonel', 'payor', 'natureCollection', 'discount'
+            'accountablePersonnel', 'payor', 'natureCollection', 'discount'
         ];
         // Get the official receipt
         $officialReceipt = OfficialReceipt::with($with)->find($orId);
@@ -63,9 +63,9 @@ class PrintController extends Controller
         $natureCollection = strtoupper($officialReceipt->natureCollection->particular_name);
         $amount = number_format($officialReceipt->amount, 2);
         $amountInWords = strtoupper($officialReceipt->amount_words);
-        $personelName = strtoupper(
-            $officialReceipt->accountablePersonel->first_name . ' ' .
-            $officialReceipt->accountablePersonel->last_name
+        $personnelName = strtoupper(
+            $officialReceipt->accountablePersonnel->first_name . ' ' .
+            $officialReceipt->accountablePersonnel->last_name
         );
         $paymentMode = strtolower($officialReceipt->payment_mode);
 
@@ -147,7 +147,7 @@ class PrintController extends Controller
 
         $pdf->SetXY(0.25, 7.19);
         $pdf->Cell(1.85, 0, '', 0, 0, 'L');
-        $pdf->Cell(1.75, 0, $personelName, 0, 1, 'C');
+        $pdf->Cell(1.75, 0, $personnelName, 0, 1, 'C');
 
         $pdfBlob = $pdf->Output($fileame, 'S');
         $pdfBase64 = base64_encode($pdfBlob);
