@@ -31,6 +31,7 @@ class OfficialReceiptController extends Controller
             'discount:id,discount_name'
         ])
         ->where('or_no', 'LIKE', "%{$search}%")
+        ->orWhere('amount', 'LIKE', "%{$search}%")
         ->orWhereRelation('natureCollection', 'particular_name', 'LIKE', "%{$search}%")
         ->orWhereRelation('payor', 'payor_name', 'LIKE', "%{$search}%")
         ->orWhereRelation('discount', 'discount_name', 'LIKE', "%{$search}%");
@@ -39,7 +40,10 @@ class OfficialReceiptController extends Controller
             $officialReceipts = $officialReceipts->orWhere('receipt_date', 'LIKE', "%{$dateSearch}%");
         }
 
-        $officialReceipts = $officialReceipts->paginate(50);
+        $officialReceipts = $officialReceipts
+            ->orderBy('receipt_date', 'desc')
+            ->orderBy('or_no', 'desc')
+            ->paginate(50);
 
         return response()->json([
             'data' => $officialReceipts
