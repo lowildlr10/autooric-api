@@ -18,7 +18,8 @@ class PrintController extends Controller
             case 'official-receipt':
                 $orId = $request->or_id;
                 $paperSizeId = $request->paper_size_id;
-                $this->printOfficialReceipt($orId, $paperSizeId);
+                $hasTemplate = (int) $request->has_template ?? false;
+                $this->printOfficialReceipt($orId, $paperSizeId, $hasTemplate);
                 break;
 
             case 'cash-receipt':
@@ -44,7 +45,7 @@ class PrintController extends Controller
         }
     }
 
-    public function printOfficialReceipt($orId, $paperSizeId)
+    public function printOfficialReceipt($orId, $paperSizeId, $hasTemplate = false)
     {
         $with = [
             'accountablePersonnel', 'payor', 'natureCollection', 'discount'
@@ -95,74 +96,79 @@ class PrintController extends Controller
         $pdf->setPrintHeader(false);
         $pdf->setPrintFooter(false);
 
-        for ($page = 1; $page < 3; $page++) {
+        // Main content
+        $pdf->AddPage();
 
-            // Main content
-            $pdf->AddPage();
-
-            if ($page === 2) {
-                $pdf->Image('images/or-template-2.jpg', 0, 0, $dimension[1], $dimension[0], 'JPEG');
-            }
-
-            $pdf->SetTextColor(50, 50, 50);
-            $pdf->SetFont('helvetica', 'B', 12);
-
-            // Generate a cell
-            $pdf->SetXY(0.25, 1.77);
-            $pdf->Cell(1.6, 0, $orDate, 0, 0, 'R');
-            $pdf->Cell(0.5, 0, '', 0, 0, 'L');
-            $pdf->SetFont('helvetica', 'B', 18.5);
-            $pdf->SetTextColor(188,113,136);
-            $pdf->SetXY(2.45, 1.65);
-            $pdf->Cell(1.4, 0, $page === 2 ? $orNo : '', 0, 1, 'L');
-
-            $pdf->SetTextColor(50, 50, 50);
-            $pdf->SetFont('helvetica', 'B', 12);
-
-            $pdf->SetXY(0.28, 2.32);
-            $pdf->Cell(2.6, 0, $payorName, 0, 0, 'L');
-            $pdf->Cell(2, 0, '', 0, 1, 'R');
-
-            $pdf->SetFont('helvetica', 'B', 11);
-
-            $pdf->SetXY(0.25, 2.96);
-            $pdf->MultiCell(1.6, 2.2, $natureCollection, 0, 'L', 0, 0);
-            $pdf->MultiCell(2, 2.2, $amount, 0, 'R', 0, 1);
-
-            $pdf->SetXY(0.25, 5.18);
-            $pdf->Cell(1.6, 0, '', 0, 0, 'L');
-            $pdf->Cell(2, 0, $amount, 0, 1, 'R');
-
-            $pdf->SetFont('helvetica', 'B', strlen($amountInWords) >= 35 ? 8 : 11);
-
-            $pdf->SetXY(0.25, strlen($amountInWords) >= 35 ? 5.6 : 5.64);
-            $pdf->MultiCell(3.6, 0, $amountInWords, 0, 'L', 0, 1);
-
-            $pdf->SetFont('zapfdingbats', '', 12);
-
-            switch ($paymentMode) {
-                case 'cash':
-                    $pdf->SetXY(0.3, 6.02);
-                    $pdf->Cell(1.6, 0, '4', 0, 1, 'L');
-                    break;
-                case 'check':
-                    $pdf->SetXY(0.3, 6.222);
-                    $pdf->Cell(1.6, 0, '4', 0, 1, 'L');
-                    break;
-                case 'money_order':
-                    $pdf->SetXY(0.3, 6.422);
-                    $pdf->Cell(1.6, 0, '4', 0, 1, 'L');
-                    break;
-                default:
-                    break;
-            }
-
-            $pdf->SetFont('helvetica', 'B', 9);
-
-            $pdf->SetXY(0.25, 7.19);
-            $pdf->Cell(1.85, 0, '', 0, 0, 'L');
-            $pdf->Cell(1.75, 0, $personnelName, 0, 1, 'C');
+        if ($hasTemplate) {
+            $pdf->Image('images/or-template-2.jpg', 0, 0, $dimension[1], $dimension[0], 'JPEG');
         }
+
+        $pdf->SetTextColor(50, 50, 50);
+        $pdf->SetFont('helvetica', 'B', 13);
+
+        // Generate a cell
+        $pdf->SetXY(0.25, 1.77);
+        $pdf->Cell(1.6, 0, $orDate, 0, 0, 'R');
+        $pdf->Cell(0.5, 0, '', 0, 0, 'L');
+        $pdf->SetFont('helvetica', 'B', 18.5);
+        $pdf->SetTextColor(188,113,136);
+        $pdf->SetXY(2.45, 1.65);
+        $pdf->Cell(1.4, 0, $hasTemplate ? $orNo : '', 0, 1, 'L');
+
+        $pdf->SetTextColor(50, 50, 50);
+        $pdf->SetFont('helvetica', 'B', 12);
+
+        $pdf->SetXY(0.28, 2.32);
+        $pdf->Cell(2.6, 0, $payorName, 0, 0, 'L');
+        $pdf->Cell(2, 0, '', 0, 1, 'R');
+
+        if (strlen($natureCollection) > 150) {
+            $pdf->setCellHeightRatio(1.63);
+            $pdf->SetFont('helvetica', 'B', 9);
+        } else {
+            $pdf->setCellHeightRatio(1.32);
+            $pdf->SetFont('helvetica', 'B', 11);
+        }
+
+        $pdf->SetXY(0.25, 2.96);
+        $pdf->MultiCell(1.6, 2.2, $natureCollection, 0, 'L', 0, 0);
+        $pdf->setCellHeightRatio(1.25);
+        $pdf->SetFont('helvetica', 'B', 11);
+        $pdf->MultiCell(2, 2.2, $amount, 0, 'R', 0, 1);
+
+        $pdf->SetXY(0.25, 5.18);
+        $pdf->Cell(1.6, 0, '', 0, 0, 'L');
+        $pdf->Cell(2, 0, $amount, 0, 1, 'R');
+
+        $pdf->SetFont('helvetica', 'B', strlen($amountInWords) >= 35 ? 8 : 11);
+
+        $pdf->SetXY(0.25, strlen($amountInWords) >= 35 ? 5.6 : 5.64);
+        $pdf->MultiCell(3.6, 0, $amountInWords, 0, 'L', 0, 1);
+
+        $pdf->SetFont('zapfdingbats', '', 12);
+
+        switch ($paymentMode) {
+            case 'cash':
+                $pdf->SetXY(0.3, 6.02);
+                $pdf->Cell(1.6, 0, '4', 0, 1, 'L');
+                break;
+            case 'check':
+                $pdf->SetXY(0.3, 6.222);
+                $pdf->Cell(1.6, 0, '4', 0, 1, 'L');
+                break;
+            case 'money_order':
+                $pdf->SetXY(0.3, 6.422);
+                $pdf->Cell(1.6, 0, '4', 0, 1, 'L');
+                break;
+            default:
+                break;
+        }
+
+        $pdf->SetFont('helvetica', 'B', 9);
+
+        $pdf->SetXY(0.25, 7.19);
+        $pdf->Cell(1.85, 0, '', 0, 0, 'L');
+        $pdf->Cell(1.75, 0, $personnelName, 0, 1, 'C');
 
         //$pdfBlob = $pdf->Output($fileame, 'I');
 
