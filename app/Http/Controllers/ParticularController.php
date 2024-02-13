@@ -48,7 +48,12 @@ class ParticularController extends Controller
         $request->validated();
 
         // Create a new category if not exists and get the id
-        $category = Category::firstOrCreate(['category_name' => $request->category_id]);
+        $category = Category::find($request->category_id);
+        if (!$category) {
+            $category = Category::create([
+                'category_name' => $request->category_id
+            ]);
+        }
 
         try {
             $isExisting = Particular::where('category_id', $category->id)
