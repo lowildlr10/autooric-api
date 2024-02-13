@@ -104,6 +104,7 @@ class PrintController extends Controller
                 $pdf->Image('images/or-template-2.jpg', 0, 0, $dimension[1], $dimension[0], 'JPEG');
             }
 
+            $pdf->SetTextColor(50, 50, 50);
             $pdf->SetFont('helvetica', 'B', 12);
 
             // Generate a cell
@@ -115,7 +116,7 @@ class PrintController extends Controller
             $pdf->SetXY(2.45, 1.65);
             $pdf->Cell(1.4, 0, $page === 2 ? $orNo : '', 0, 1, 'L');
 
-            $pdf->SetTextColor(0, 0, 0);
+            $pdf->SetTextColor(50, 50, 50);
             $pdf->SetFont('helvetica', 'B', 12);
 
             $pdf->SetXY(0.28, 2.32);
