@@ -108,8 +108,8 @@ class PrintController extends Controller
 
             // Generate a cell
             $pdf->SetXY(0.25, 1.77);
-            $pdf->Cell(1.8, 0, $orDate, 0, 0, 'R');
-            $pdf->Cell(0.4, 0, '', 0, 0, 'L');
+            $pdf->Cell(1.6, 0, $orDate, 0, 0, 'R');
+            $pdf->Cell(0.5, 0, '', 0, 0, 'L');
             $pdf->SetFont('helvetica', 'B', 18.5);
             $pdf->SetTextColor(188,113,136);
             $pdf->SetXY(2.45, 1.65);
@@ -163,20 +163,20 @@ class PrintController extends Controller
             $pdf->Cell(1.75, 0, $personnelName, 0, 1, 'C');
         }
 
-        //$pdfBlob = $pdf->Output($fileame, 'I');
+        $pdfBlob = $pdf->Output($fileame, 'I');
 
-        $pdfBlob = $pdf->Output($fileame, 'S');
-        $pdfBase64 = base64_encode($pdfBlob);
+        // $pdfBlob = $pdf->Output($fileame, 'S');
+        // $pdfBase64 = base64_encode($pdfBlob);
 
-        header('Content-Type: application/json');
-        header('Access-Control-Allow-Origin: *');
+        // header('Content-Type: application/json');
+        // header('Access-Control-Allow-Origin: *');
 
-        echo json_encode([
-            'data' => [
-                'filename' => $fileame,
-                'pdf' => $pdfBase64,
-                'success' => 1
-            ]
-        ], 201);
+        // echo json_encode([
+        //     'data' => [
+        //         'filename' => $fileame,
+        //         'pdf' => $pdfBase64,
+        //         'success' => 1
+        //     ]
+        // ], 201);
     }
 }
