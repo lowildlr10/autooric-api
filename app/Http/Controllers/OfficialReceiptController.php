@@ -43,6 +43,28 @@ class OfficialReceiptController extends Controller
             $officialReceipts = $officialReceipts->orWhere('receipt_date', 'LIKE', "%{$dateSearch}%");
         }
 
+        switch (strtolower($search)) {
+            case 'pending':
+                $officialReceipts = $officialReceipts->orWhere(function (Builder $query) {
+                    $query->whereNull('deposited_date')
+                        ->whereNull('cancelled_date');
+                });
+                break;
+            case 'cancel':
+            case 'cancelled':
+                $officialReceipts = $officialReceipts->orWhereNotNull('cancelled_date');
+                break;
+            case 'deposit':
+            case 'deposited':
+                $officialReceipts = $officialReceipts->orWhere(function (Builder $query) {
+                    $query->whereNotNull('deposited_date')
+                        ->whereNull('cancelled_date');
+                });
+                break;
+            default:
+                break;
+        }
+
         $officialReceipts = $officialReceipts
             ->orderBy('receipt_date', 'desc')
             ->orderBy('or_no', 'desc')
