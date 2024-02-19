@@ -66,8 +66,7 @@ class OfficialReceiptController extends Controller
         }
 
         $officialReceipts = $officialReceipts
-            ->orderBy('receipt_date', 'desc')
-            ->orderBy('or_no', 'desc')
+            ->orderBy('created_at', 'desc')
             ->paginate(50);
 
         return response()->json([

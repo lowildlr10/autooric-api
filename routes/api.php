@@ -36,10 +36,8 @@ Route::group([
     Route::middleware('auth:sanctum')->group(function() {
         Route::name('user.')
             ->group(function() {
-                Route::post('/register', [AuthController::class, 'register'])->name('register');
                 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
                 Route::get('/me', [AuthController::class, 'me'])->name('me');
-                Route::patch('/users/{id}', [AuthController::class, 'update'])->name('update');
             });
 
         // Route api for official receipt
@@ -69,6 +67,9 @@ Route::group([
         Route::apiResource('/discounts', 'App\Http\Controllers\DiscountController');
         Route::get('/discounts-paginated', [DiscountController::class, 'indexPaginated'])
             ->name('discounts.paginated');
+
+        // Route api for user management
+        Route::apiResource('/user-management/users', 'App\Http\Controllers\UserManagementController');
 
         // Route api for paper size
         Route::apiResource('/paper-sizes', 'App\Http\Controllers\PaperSizeController');
