@@ -69,7 +69,9 @@ Route::group([
             ->name('discounts.paginated');
 
         // Route api for user management
-        Route::apiResource('/user-management/users', 'App\Http\Controllers\UserManagementController');
+        Route::middleware('is_admin')->group(function() {
+            Route::apiResource('/user-management/users', 'App\Http\Controllers\UserManagementController');
+        });
 
         // Route api for paper size
         Route::apiResource('/paper-sizes', 'App\Http\Controllers\PaperSizeController');

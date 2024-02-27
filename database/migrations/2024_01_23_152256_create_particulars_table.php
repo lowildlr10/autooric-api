@@ -18,6 +18,7 @@ return new class extends Migration
                 ->references('id')
                 ->on('categories');
             $table->string('particular_name')->unique();
+            $table->double('default_amount', 20, 2)->nullable();
             $table->integer('order_no')->unsigned();
             $table->timestamps();
         });

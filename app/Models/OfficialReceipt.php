@@ -62,3 +62,5 @@ class OfficialReceipt extends Model
         return $this->belongsTo(Discount::class, 'discount_id');
     }
 }
+
+

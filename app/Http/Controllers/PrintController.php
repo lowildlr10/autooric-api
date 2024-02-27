@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\OfficialReceipt;
+use App\Models\Discount;
 use App\Models\PaperSize;
 use TCPDF;
 
@@ -59,10 +60,17 @@ class PrintController extends Controller
                 ->first();
         }
 
+        $discount = Discount::find($officialReceipt->discount_id);
+
         $orDate = date('m/d/Y', strtotime($officialReceipt->receipt_date));
         $orNo = $officialReceipt->or_no;
         $payorName = strtoupper($officialReceipt->payor->payor_name);
-        $natureCollection = strtoupper($officialReceipt->natureCollection->particular_name);
+        $discountName = $discount ? "\n\n\n$discount->discount_name\n$officialReceipt->card_no" :
+            '';
+        $natureCollection = strtoupper(
+            $officialReceipt->natureCollection->particular_name .
+            $discountName
+        );
         $amount = number_format($officialReceipt->amount, 2);
         $amountInWords = strtoupper($officialReceipt->amount_words);
         $personnelName = strtoupper(

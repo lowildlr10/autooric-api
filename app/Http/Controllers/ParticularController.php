@@ -73,6 +73,7 @@ class ParticularController extends Controller
             $particular = Particular::create([
                 'category_id' => $category->id,
                 'particular_name' => $request->particular_name,
+                'default_amount' => $request->default_amount,
                 'order_no' => Particular::where('category_id', $category->id)
                     ->count()
             ]);
@@ -89,6 +90,7 @@ class ParticularController extends Controller
             'data' => [
                 'data' => [
                     'particular_name' => $request->particular_name,
+                    'default_amount' => $request->default_amount,
                     'category' => $category->only(['id', 'category_name']),
                 ],
                 'message' => 'Particular created successfully',

@@ -58,6 +58,7 @@ class ParticularSeeder extends Seeder
         ]);
         \App\Models\Particular::create([
             'particular_name' => 'Drug Test',
+            'default_amount' => 900,
             'category_id' => $categories->where('category_name', 'Trust Receipts')->first()->id,
             'order_no' => \App\Models\Particular::where('category_id',
                 $categories->where('category_name', 'Trust Receipts')->first()->id

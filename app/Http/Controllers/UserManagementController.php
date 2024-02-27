@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\User;
+use App\Services\UserLogsServices;
 
 class UserManagementController extends Controller
 {
@@ -40,19 +41,47 @@ class UserManagementController extends Controller
     }
 
     /**
+     * Display a listing of the resource.
+     */
+    public function indexLogs(Request $request)
+    {
+        $search = trim($request->search) ?? '';
+
+        // Get all users paginated
+        $users = User::with([
+            'position:id,position_name',
+            'designation:id,designation_name',
+            'station:id,station_name'
+        ])
+        ->where('first_name', 'LIKE', "%{$search}%")
+        ->orWhere('middle_name', 'LIKE', "%{$search}%")
+        ->orWhere('last_name', 'LIKE', "%{$search}%")
+        ->orWhere('email', 'LIKE', "%{$search}%")
+        ->orWhere('phone', 'LIKE', "%{$search}%")
+        ->orWhere('username', 'LIKE', "%{$search}%")
+        ->orWhere('role', 'LIKE', "%{$search}%")
+        ->orWhereRelation('position', 'position_name', 'LIKE', "%{$search}%")
+        ->orWhereRelation('designation', 'designation_name', 'LIKE', "%{$search}%")
+        ->orWhereRelation('station', 'station_name', 'LIKE', "%{$search}%")
+        ->orderBy('first_name')
+        ->orderBy('last_name')
+        ->paginate(50);
+
+        return response()->json([
+            'data' => $users
+        ], 201);
+    }
+
+    /**
      * Store a newly created resource in storage.
      */
     public function store(Request $request)
     {
-        // check if user is not admin
-        if ($request->user()->role !== 'admin') {
-            return response()->json([
-                'data' => [
-                    'message' => 'Unauthorized',
-                    'error' => 1
-                ]
-            ], 401);
-        }
+        $userLog = new UserLogsServices(
+            $request->user()->id,
+            $request->getClientIp(),
+            $request->header('User-Agent') ?? $request->server('User-Agent')
+        );
 
         // Validate the request
         $validated = $request->validate([
@@ -83,6 +112,9 @@ class UserManagementController extends Controller
             ], 422);
         }
 
+        $userLog->logActivity(
+            "Registered user - $user->first_name $user->last_name"
+        );
         return response()->json([
             'data' => [
                 'data' => $request->except('password'),
@@ -108,6 +140,12 @@ class UserManagementController extends Controller
      */
     public function update(Request $request, string $id)
     {
+        $userLog = new UserLogsServices(
+            $request->user()->id,
+            $request->getClientIp(),
+            $request->header('User-Agent') ?? $request->server('User-Agent')
+        );
+
         // check if user is not admin
         if ($request->user()->role !== 'admin') {
             return response()->json([
@@ -150,6 +188,9 @@ class UserManagementController extends Controller
             ], 422);
         }
 
+        $userLog->logActivity(
+            "Updated user - $user->first_name $user->last_name"
+        );
         return response()->json([
             'data' => [
                 'data' => $request->except('password'),
@@ -162,8 +203,14 @@ class UserManagementController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(User $user)
+    public function destroy(Request $request, User $user)
     {
+        $userLog = new UserLogsServices(
+            $request->user()->id,
+            $request->getClientIp(),
+            $request->header('User-Agent') ?? $request->server('User-Agent')
+        );
+
         try {
             $user->delete();
         } catch (\Throwable $th) {
@@ -178,6 +225,9 @@ class UserManagementController extends Controller
             ], 422);
         }
 
+        $userLog->logActivity(
+            "Deleted user - $user->first_name $user->last_name"
+        );
         return response()->json([
             'data' => [
                 'message' => 'User deleted successfully',

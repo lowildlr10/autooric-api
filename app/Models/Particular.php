@@ -16,6 +16,7 @@ class Particular extends Model
         'id',
         'particular_name',
         'category_id',
+        'default_amount',
         'order_no'
     ];
 

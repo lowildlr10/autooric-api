@@ -100,6 +100,7 @@ class OfficialReceiptController extends Controller
                 'nature_collection_id' => $request->nature_collection_id,
                 'amount' => $request->amount,
                 'discount_id' => $request->discount_id,
+                'card_no' => $request->card_no,
                 'amount_words' => $request->amount_words,
                 'payment_mode' => $request->payment_mode
             ]);
@@ -163,8 +164,7 @@ class OfficialReceiptController extends Controller
             // Update the official receipt
             $officialReceipt->update([
                 'deposited_date' => now(),
-                'deposit' => $request->deposit,
-                'card_no' => $request->card_no
+                'deposit' => $request->deposit
             ]);
         } catch (\Throwable $th) {
             return response()->json([
