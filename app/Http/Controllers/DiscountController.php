@@ -47,7 +47,8 @@ class DiscountController extends Controller
             // Create a new discount
             $discount = Discount::create([
                 'discount_name' => $request->discount_name,
-                'percent' => $request->percent
+                'percent' => $request->percent,
+                'requires_card_no' => $request->requires_card_no
             ]);
         } catch (\Throwable $th) {
             return response()->json([

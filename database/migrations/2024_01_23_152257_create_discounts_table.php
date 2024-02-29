@@ -15,6 +15,7 @@ return new class extends Migration
             $table->uuid('id')->primary();
             $table->string('discount_name');
             $table->double('percent', 10, 2);
+            $table->boolean('requires_card_no')->default(false);
             $table->boolean('is_active')->default(true);
             $table->timestamps();
         });

@@ -28,7 +28,7 @@ class OfficialReceiptController extends Controller
         $officialReceipts = OfficialReceipt::with([
             'natureCollection:id,particular_name',
             'payor:id,payor_name',
-            'discount:id,discount_name,percent',
+            'discount:id,discount_name,percent,requires_card_no',
             'accountablePersonnel:id,first_name,last_name'
         ])
         ->where('or_no', 'LIKE', "%{$search}%")

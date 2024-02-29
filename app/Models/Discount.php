@@ -15,6 +15,7 @@ class Discount extends Model
     protected $fillable = [
         'discount_name',
         'percent',
+        'requires_card_no',
         'is_active'
     ];
 
