@@ -18,52 +18,30 @@ class OfficialReceiptController extends Controller
     {
         $search = trim($request->search) ?? '';
 
-        try {
-            $dateSearch = date_format(date_create($search), 'Y-m-d');
-        } catch (\Throwable $th) {
-            $dateSearch = '';
-        }
-
         // Get all official receipts paginated
         $officialReceipts = OfficialReceipt::with([
             'natureCollection:id,particular_name',
             'payor:id,payor_name',
             'discount:id,discount_name,percent,requires_card_no',
             'accountablePersonnel:id,first_name,last_name'
-        ])
-        ->where('or_no', 'LIKE', "%{$search}%")
-        ->orWhere('amount', 'LIKE', "%{$search}%")
-        ->orWhereRelation('natureCollection', 'particular_name', 'LIKE', "%{$search}%")
-        ->orWhereRelation('payor', 'payor_name', 'LIKE', "%{$search}%")
-        ->orWhereRelation('discount', 'discount_name', 'LIKE', "%{$search}%")
-        ->orWhereRelation('accountablePersonnel', 'first_name', 'LIKE', "%{$search}%")
-        ->orWhereRelation('accountablePersonnel', 'last_name', 'LIKE', "%{$search}%");
+        ]);
 
-        if ($dateSearch) {
-            $officialReceipts = $officialReceipts->orWhere('receipt_date', 'LIKE', "%{$dateSearch}%");
-        }
+        try {
+            if ($search) {
+                $searchData = explode('|', $search);
+                $from = date_format(date_create($searchData[0]), 'Y-m-d');
+                $to = date_format(date_create($searchData[1]), 'Y-m-d');
+                $particulars = $searchData[2] === '*' ? '' : $searchData[2];
 
-        switch (strtolower($search)) {
-            case 'pending':
-                $officialReceipts = $officialReceipts->orWhere(function (Builder $query) {
-                    $query->whereNull('deposited_date')
-                        ->whereNull('cancelled_date');
-                });
-                break;
-            case 'cancel':
-            case 'cancelled':
-                $officialReceipts = $officialReceipts->orWhereNotNull('cancelled_date');
-                break;
-            case 'deposit':
-            case 'deposited':
-                $officialReceipts = $officialReceipts->orWhere(function (Builder $query) {
-                    $query->whereNotNull('deposited_date')
-                        ->whereNull('cancelled_date');
-                });
-                break;
-            default:
-                break;
-        }
+                $officialReceipts = $officialReceipts
+                    ->whereBetween('receipt_date', [$from, $to]);
+
+                if ($particulars) {
+                    $officialReceipts = $officialReceipts
+                        ->whereRelation('natureCollection', 'id', $particulars);
+                }
+            }
+        } catch (\Throwable $th) {}
 
         $officialReceipts = $officialReceipts
             ->orderBy('created_at', 'desc')
