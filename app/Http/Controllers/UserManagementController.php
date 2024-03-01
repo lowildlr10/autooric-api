@@ -4,6 +4,9 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\User;
+use App\Models\Position;
+use App\Models\Designation;
+use App\Models\Station;
 use App\Services\UserLogsServices;
 
 class UserManagementController extends Controller
@@ -86,10 +89,10 @@ class UserManagementController extends Controller
         // Validate the request
         $validated = $request->validate([
             'first_name' => 'required',
-            'middle_name' => '',
+            'middle_name' => 'nullable',
             'last_name' => 'required',
-            'email' => 'email|unique:users',
-            'phone' => 'unique:users',
+            'email' => 'email|unique:users|nullable',
+            'phone' => 'unique:users|nullable',
             'position_id' => 'required',
             'designation_id' => 'required',
             'station_id' => 'required',
@@ -97,11 +100,40 @@ class UserManagementController extends Controller
             'password' => 'required|min:6'
         ]);
 
+        // Create a new position if not exists and get the id
+        $position = Position::find($validated['position_id']);
+        if (!$position) {
+            $position = Position::create([
+                'position_name' => $validated['position_id'],
+            ]);
+        }
+
+        // Create a new designation if not exists and get the id
+        $designation = Designation::find($validated['designation_id']);
+        if (!$designation) {
+            $designation = Designation::create([
+                'designation_name' => $validated['designation_id'],
+            ]);
+        }
+
+        // Create a new station if not exists and get the id
+        $station = Station::find($validated['station_id']);
+        if (!$station) {
+            $station = Station::create([
+                'station_name' => $validated['station_id'],
+            ]);
+        }
+
         try {
             // Create a user
             $user = User::create(array_merge(
                 $validated,
-                ['password' => bcrypt($request->password)]
+                [
+                    'position_id' => $position->id,
+                    'designation_id' => $designation->id,
+                    'station_id' => $station->id,
+                    'password' => bcrypt($request->password)
+                ]
             ));
         } catch (\Throwable $th) {
             return response()->json([
@@ -161,24 +193,70 @@ class UserManagementController extends Controller
             'first_name' => 'required',
             'middle_name' => '',
             'last_name' => 'required',
-            'email' => 'email',
-            'phone' => '',
+            'email' => 'email|nullable',
+            'phone' => 'nullable',
             'position_id' => 'required',
             'designation_id' => 'required',
             'station_id' => 'required',
             'username' => 'required',
-            'password' => 'required|min:6',
             'role' => 'required',
-            'is_active' => 'required|boolean'
+            'is_active' => 'required|boolean',
+            'password' => ''
         ]);
+
+        // Create a new position if not exists and get the id
+        $position = Position::find($validated['position_id']);
+        if (!$position) {
+            $position = Position::create([
+                'position_name' => $validated['position_id'],
+            ]);
+        }
+
+        // Create a new designation if not exists and get the id
+        $designation = Designation::find($validated['designation_id']);
+        if (!$designation) {
+            $designation = Designation::create([
+                'designation_name' => $validated['designation_id'],
+            ]);
+        }
+
+        // Create a new station if not exists and get the id
+        $station = Station::find($validated['station_id']);
+        if (!$station) {
+            $station = Station::create([
+                'station_name' => $validated['station_id'],
+            ]);
+        }
 
         try {
             // Update a user
             $user = User::find($id);
-            $user->update(array_merge(
-                $validated,
-                ['password' => bcrypt($request->password)]
-            ));
+
+            if (trim($request->password)) {
+                $user->update(array_merge(
+                    $validated,
+                    [
+                        'position_id' => $position->id,
+                        'designation_id' => $designation->id,
+                        'station_id' => $station->id,
+                        'password' => bcrypt(trim($request->password))
+                    ]
+                ));
+            } else {
+                $user->update([
+                    'first_name' => $validated['first_name'],
+                    'middle_name' => $validated['middle_name'],
+                    'last_name' => $validated['last_name'],
+                    'email' => $validated['email'],
+                    'phone' => $validated['phone'],
+                    'position_id' => $position->id,
+                    'designation_id' => $designation->id,
+                    'station_id' => $station->id,
+                    'username' => $validated['username'],
+                    'role' => $validated['role'],
+                    'is_active' => $validated['is_active']
+                ]);
+            }
         } catch (\Throwable $th) {
             return response()->json([
                 'data' => [

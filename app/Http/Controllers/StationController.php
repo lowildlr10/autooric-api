@@ -13,7 +13,13 @@ class StationController extends Controller
      */
     public function index()
     {
-        //
+        // Get all the stations
+        $stations = Station::orderBy('station_name')
+            ->get();
+
+        return response()->json([
+            'data' => $stations
+        ]);
     }
 
     /**

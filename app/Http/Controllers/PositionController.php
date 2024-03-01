@@ -13,7 +13,13 @@ class PositionController extends Controller
      */
     public function index()
     {
-        //
+        // Get all the positions
+        $positions = Position::orderBy('position_name')
+            ->get();
+
+        return response()->json([
+            'data' => $positions
+        ]);
     }
 
     /**

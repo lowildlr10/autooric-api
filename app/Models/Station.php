@@ -12,6 +12,16 @@ class Station extends Model
     protected $keyType = 'string';
     public $incrementing = false;
 
+    protected $fillable = [
+        'id',
+        'station_name'
+    ];
+
+    protected $hidden = [
+        'created_at',
+        'updated_at'
+    ];
+
     // automatic `id` uuid generation for primary key
     protected static function boot()
     {

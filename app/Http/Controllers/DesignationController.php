@@ -13,7 +13,13 @@ class DesignationController extends Controller
      */
     public function index()
     {
-        //
+        // Get all the designations
+        $designations = Designation::orderBy('designation_name')
+            ->get();
+
+        return response()->json([
+            'data' => $designations
+        ]);
     }
 
     /**

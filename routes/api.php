@@ -78,6 +78,15 @@ Route::group([
         Route::get('/paper-sizes-paginated', [PaperSizeController::class, 'indexPaginated'])
             ->name('paper-sizes.paginated');
 
+        // Route api for payor
+        Route::apiResource('/positions', 'App\Http\Controllers\PositionController');
+
+        // Route api for payor
+        Route::apiResource('/designations', 'App\Http\Controllers\DesignationController');
+
+        // Route api for payor
+        Route::apiResource('/stations', 'App\Http\Controllers\StationController');
+
         // Print api routes
         Route::get('/print/{printType}', [PrintController::class, 'index'])->name('print.index');
     });
