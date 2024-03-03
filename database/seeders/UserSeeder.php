@@ -28,6 +28,7 @@ class UserSeeder extends Seeder
             'username' => 'admin',
             'password' => bcrypt('pwd12345'),
             'role' => 'admin',
+            'is_active' => true
         ]);
     }
 }

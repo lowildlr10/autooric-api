@@ -35,7 +35,7 @@ return new class extends Migration
             $table->enum('role', ['admin', 'staff'])
                 ->default('staff');
             $table->boolean('is_active')
-                ->default(true);
+                ->default(false);
             $table->rememberToken();
             $table->timestamps();
         });

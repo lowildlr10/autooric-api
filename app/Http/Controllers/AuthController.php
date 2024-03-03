@@ -54,6 +54,15 @@ class AuthController extends Controller
             ], 401);
         }
 
+        if (!auth()->user()->is_active) {
+            return response()->json([
+                'data' => [
+                    'message' => 'User is not active. Please contact your system administrator.',
+                    'error' => 1
+                ]
+            ], 401);
+        }
+
         // Generate a token for the user
         $token = auth()->user()->createToken('authToken')->plainTextToken;
 

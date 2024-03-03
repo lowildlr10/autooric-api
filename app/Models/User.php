@@ -29,7 +29,8 @@ class User extends Authenticatable
         'designation_id',
         'station_id',
         'username',
-        'password'
+        'password',
+        'is_active'
     ];
 
     /**

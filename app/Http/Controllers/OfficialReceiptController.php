@@ -29,12 +29,14 @@ class OfficialReceiptController extends Controller
         try {
             if ($search) {
                 $searchData = explode('|', $search);
-                $from = date_format(date_create($searchData[0]), 'Y-m-d');
-                $to = date_format(date_create($searchData[1]), 'Y-m-d');
+                $from = $searchData[0] === '*' ? '*' : date_format(date_create($searchData[0]), 'Y-m-d');
+                $to = $searchData[1] === '*' ? '*' : date_format(date_create($searchData[1]), 'Y-m-d');
                 $particulars = $searchData[2] === '*' ? '' : $searchData[2];
 
-                $officialReceipts = $officialReceipts
-                    ->whereBetween('receipt_date', [$from, $to]);
+                if ($from !== '*' && $to !== '*') {
+                    $officialReceipts = $officialReceipts
+                        ->whereBetween('receipt_date', [$from, $to]);
+                }
 
                 if ($particulars) {
                     $officialReceipts = $officialReceipts
