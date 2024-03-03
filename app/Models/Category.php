@@ -26,4 +26,9 @@ class Category extends Model
             $model->order_no = Category::count();
         });
     }
+
+    public function particulars()
+    {
+        return $this->hasMany(Particular::class, 'category_id', 'id')->orderBy('order_no');
+    }
 }

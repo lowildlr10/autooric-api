@@ -30,6 +30,7 @@ class User extends Authenticatable
         'station_id',
         'username',
         'password',
+        'role',
         'is_active'
     ];
 

@@ -98,7 +98,8 @@ class UserManagementController extends Controller
             'station_id' => 'required',
             'username' => 'required|unique:users',
             'password' => 'required|min:6',
-            'is_active' => 'required'
+            'role' => 'required',
+            'is_active' => 'required|boolean'
         ]);
 
         // Create a new position if not exists and get the id

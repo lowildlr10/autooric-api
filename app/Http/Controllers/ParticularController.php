@@ -32,23 +32,40 @@ class ParticularController extends Controller
     {
         $search = trim($request->search) ?? '';
 
-        // Get all the particulars
-        $particulars = Particular::with('category:id,category_name');
+        // // Get all the particulars
+        // $particulars = Particular::with(['category:id,category_name']);
+
+        // if ($search) {
+        //     $particulars = $particulars
+        //         ->where('particular_name', 'LIKE', "%$search%")
+        //         ->orWhere('default_amount', 'LIKE', "%$search%")
+        //         ->orWhereRelation('category', 'category_name', 'LIKE', "%$search%");
+        // }
+
+        // $particulars =  $particulars
+        //     ->orderBy('order_no')
+        //     ->orderBy('category_id')
+        //     ->paginate(50);
+
+        // return response()->json([
+        //     'data' => $particulars
+        // ]);
+
+        $categories = Category::with('particulars');
 
         if ($search) {
-            $particulars = $particulars
-                ->where('particular_name', 'LIKE', "%$search%")
-                ->orWhere('default_amount', 'LIKE', "%$search%")
-                ->orWhereRelation('category', 'category_name', 'LIKE', "%$search%");
+            $categories = $categories
+                ->where('category_name', 'LIKE', "%$search%")
+                ->orWhereRelation('particulars', 'particular_name', 'LIKE', "%$search%")
+                ->orWhereRelation('particulars', 'default_amount', 'LIKE', "%$search%");
         }
 
-        $particulars =  $particulars
-            ->orderBy('particular_name')
+        $categories = $categories
             ->orderBy('order_no')
-            ->paginate(50);
+            ->paginate(5);
 
         return response()->json([
-            'data' => $particulars
+            'data' => $categories
         ]);
     }
 
