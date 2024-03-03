@@ -59,9 +59,8 @@ Route::group([
             ->name('particulars.paginated');
 
         // Route api for payor
-        Route::apiResource('/payors', 'App\Http\Controllers\PayorController');
-        Route::get('/payors-paginated', [PayorController::class, 'indexPaginated'])
-            ->name('payors.paginated');
+        Route::apiResource('/payors', 'App\Http\Controllers\PayorController')
+            ->only('index');
 
         // Route api for discount
         Route::apiResource('/discounts', 'App\Http\Controllers\DiscountController');
@@ -78,13 +77,13 @@ Route::group([
         Route::get('/paper-sizes-paginated', [PaperSizeController::class, 'indexPaginated'])
             ->name('paper-sizes.paginated');
 
-        // Route api for payor
+        // Route api for positions
         Route::apiResource('/positions', 'App\Http\Controllers\PositionController');
 
-        // Route api for payor
+        // Route api for designations
         Route::apiResource('/designations', 'App\Http\Controllers\DesignationController');
 
-        // Route api for payor
+        // Route api for stations
         Route::apiResource('/stations', 'App\Http\Controllers\StationController');
 
         // Print api routes

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\PaperSize;
 use App\Http\Requests\StorePaperSizeRequest;
 use App\Http\Requests\UpdatePaperSizeRequest;
+use Illuminate\Http\Request;
 
 class PaperSizeController extends Controller
 {
@@ -25,11 +26,21 @@ class PaperSizeController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function indexPaginated()
+    public function indexPaginated(Request $request)
     {
+        $search = trim($request->search) ?? '';
+
         // Get all the paper sizes
-        $paperSizes = PaperSize::orderBy('paper_name')
-            ->paginate(50);
+        $paperSizes = PaperSize::orderBy('paper_name');
+
+        if ($search) {
+            $paperSizes = $paperSizes
+                ->where('paper_name', 'LIKE', "%$search%")
+                ->orWhere('width', 'LIKE', "%$search%")
+                ->orWhere('height', 'LIKE', "%$search%");
+        }
+
+        $paperSizes = $paperSizes->paginate(50);
 
         return response()->json([
             'data' => $paperSizes

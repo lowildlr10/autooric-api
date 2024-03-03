@@ -6,6 +6,7 @@ use App\Models\Category;
 use App\Models\Particular;
 use App\Http\Requests\StoreParticularRequest;
 use App\Http\Requests\UpdateParticularRequest;
+use Illuminate\Http\Request;
 
 class ParticularController extends Controller
 {
@@ -27,11 +28,23 @@ class ParticularController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function indexPaginated()
+    public function indexPaginated(Request $request)
     {
+        $search = trim($request->search) ?? '';
+
         // Get all the particulars
-        $particulars = Particular::with('category:id,category_name')
+        $particulars = Particular::with('category:id,category_name');
+
+        if ($search) {
+            $particulars = $particulars
+                ->where('particular_name', 'LIKE', "%$search%")
+                ->orWhere('default_amount', 'LIKE', "%$search%")
+                ->orWhereRelation('category', 'category_name', 'LIKE', "%$search%");
+        }
+
+        $particulars =  $particulars
             ->orderBy('particular_name')
+            ->orderBy('order_no')
             ->paginate(50);
 
         return response()->json([

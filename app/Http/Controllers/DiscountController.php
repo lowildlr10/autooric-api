@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Discount;
 use App\Http\Requests\StoreDiscountRequest;
 use App\Http\Requests\UpdateDiscountRequest;
+use Illuminate\Http\Request;
 
 class DiscountController extends Controller
 {
@@ -24,11 +25,20 @@ class DiscountController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function indexPaginated()
+    public function indexPaginated(Request $request)
     {
+        $search = trim($request->search) ?? '';
+
         // Get all the discounts
-        $discounts = Discount::orderBy('discount_name')
-            ->paginate(50);
+        $discounts = Discount::orderBy('discount_name');
+
+        if ($search) {
+            $discounts = $discounts
+                ->where('discount_name', 'LIKE', "%$search%")
+                ->orWhere('percent', 'LIKE', "%$search%");
+        }
+
+        $discounts = $discounts->paginate(50);
 
         return response()->json([
             'data' => $discounts
