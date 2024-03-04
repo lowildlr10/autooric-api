@@ -14,7 +14,8 @@ class Category extends Model
 
     protected $fillable = [
         'id',
-        'category_name'
+        'category_name',
+        'order_no'
     ];
 
     // automatic `id` uuid generation for primary key and `order_no` generation

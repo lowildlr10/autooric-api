@@ -12,6 +12,12 @@ class PaperSize extends Model
     protected $keyType = 'string';
     public $incrementing = false;
 
+    protected $fillable = [
+        'paper_name',
+        'width',
+        'height'
+    ];
+
     // automatic `id` uuid generation for primary key
     protected static function boot()
     {

@@ -55,12 +55,12 @@ class CategoryController extends Controller
         try {
             // Create a new category
             $category = Category::create([
-                'category_name' => $request->category
+                'category_name' => $request->category_name
             ]);
         } catch (\Throwable $th) {
             return response()->json([
                 'data' => [
-                    'message' => 'Failed to create category',
+                    'message' => 'Failed to create a category',
                     'error' => 1
                 ]
             ], 422);
@@ -98,7 +98,7 @@ class CategoryController extends Controller
         try {
             // Create a new category
             $category->update([
-                'category_name' => $request->category,
+                'category_name' => $request->category_name,
                 'order_no' => $request->order_no
             ]);
         } catch (\Throwable $th) {
@@ -131,7 +131,7 @@ class CategoryController extends Controller
                 'data' => [
                     'message' =>
                         $th->getCode() === '23000' ?
-                            'Failed to delete category. There are a connected OR/s for this record.' :
+                            'Failed to delete category. There are records connected to this record.' :
                             'Unknown error occured',
                     'error' => 1
                 ]

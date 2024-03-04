@@ -136,7 +136,7 @@ class DiscountController extends Controller
                 'data' => [
                     'message' =>
                         $th->getCode() === '23000' ?
-                            'Failed to delete discount. There are a connected OR/s for this record.' :
+                            'Failed to delete category. There are records connected to this record.' :
                             'Unknown error occured',
                     'error' => 1
                 ]
