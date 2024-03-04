@@ -15,7 +15,9 @@ class DiscountController extends Controller
     public function index()
     {
         // Get all the discounts
-        $discounts = Discount::orderBy('discount_name')->get();
+        $discounts = Discount::orderBy('discount_name')
+            ->where('is_active', true)
+            ->get();
 
         return response()->json([
             'data' => $discounts
