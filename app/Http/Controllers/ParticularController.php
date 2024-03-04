@@ -32,26 +32,11 @@ class ParticularController extends Controller
     {
         $search = trim($request->search) ?? '';
 
-        // // Get all the particulars
-        // $particulars = Particular::with(['category:id,category_name']);
-
-        // if ($search) {
-        //     $particulars = $particulars
-        //         ->where('particular_name', 'LIKE', "%$search%")
-        //         ->orWhere('default_amount', 'LIKE', "%$search%")
-        //         ->orWhereRelation('category', 'category_name', 'LIKE', "%$search%");
-        // }
-
-        // $particulars =  $particulars
-        //     ->orderBy('order_no')
-        //     ->orderBy('category_id')
-        //     ->paginate(50);
-
-        // return response()->json([
-        //     'data' => $particulars
-        // ]);
-
-        $categories = Category::with('particulars');
+        $categories = Category::with(['particulars' => function($query) use ($search) {
+            if ($search) {
+                $query->where('particular_name', 'LIKE', "%$search%");
+            }
+        }]);
 
         if ($search) {
             $categories = $categories
