@@ -119,7 +119,11 @@ class ParticularController extends Controller
      */
     public function show(Particular $particular)
     {
-        //
+        // Return a json response of the particular
+        return response()->json([
+            'data' => $particular,
+            'success' => 1
+        ], 201);
     }
 
     /**
@@ -127,7 +131,45 @@ class ParticularController extends Controller
      */
     public function update(UpdateParticularRequest $request, Particular $particular)
     {
-        //
+        // Validate the request
+        $request->validated();
+
+        // Create a new category if not exists and get the id
+        $category = Category::find($request->category_id);
+        if (!$category) {
+            $category = Category::create([
+                'category_name' => $request->category_id
+            ]);
+        }
+
+        try {
+            // Create a new particular
+            $particular = Particular::create([
+                'category_id' => $category->id,
+                'particular_name' => $request->particular_name,
+                'default_amount' => $request->default_amount,
+                'order_no' => $request->order_no,
+            ]);
+        } catch (\Throwable $th) {
+            return response()->json([
+                'data' => [
+                    'message' => 'Failed to update particular',
+                    'error' => 1
+                ]
+            ], 422);
+        }
+
+        return response()->json([
+            'data' => [
+                'data' => [
+                    'particular_name' => $request->particular_name,
+                    'default_amount' => $request->default_amount,
+                    'category' => $category->only(['id', 'category_name']),
+                ],
+                'message' => 'Particular updated successfully',
+                'success' => 1
+            ]
+        ], 201);
     }
 
     /**
@@ -135,6 +177,25 @@ class ParticularController extends Controller
      */
     public function destroy(Particular $particular)
     {
-        //
+        try {
+            $particular->delete();
+        } catch (\Throwable $th) {
+            return response()->json([
+                'data' => [
+                    'message' =>
+                        $th->getCode() === '23000' ?
+                            'Failed to delete particular. There are a connected OR/s for this record.' :
+                            'Unknown error occured',
+                    'error' => 1
+                ]
+            ], 422);
+        }
+
+        return response()->json([
+            'data' => [
+                'message' => 'Particular deleted successfully',
+                'success' => 1
+            ]
+        ], 201);
     }
 }

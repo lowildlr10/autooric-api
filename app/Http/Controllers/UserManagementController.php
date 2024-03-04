@@ -298,7 +298,7 @@ class UserManagementController extends Controller
                 'data' => [
                     'message' =>
                         $th->getCode() === '23000' ?
-                            'Failed to delete user. There is a connected OR/s for this user.' :
+                            'Failed to delete user. There are a connected OR/s for this user.' :
                             'Unknown error occured',
                     'error' => 1
                 ]

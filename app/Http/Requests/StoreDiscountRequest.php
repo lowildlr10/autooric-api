@@ -26,7 +26,7 @@ class StoreDiscountRequest extends FormRequest
             // Validate the request
             'discount_name' => 'required',
             'percent' => 'required',
-            'requires_card_no' => ''
+            'requires_card_no' => 'boolean|required'
         ];
     }
 }

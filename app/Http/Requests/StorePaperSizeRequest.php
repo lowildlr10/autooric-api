@@ -22,7 +22,10 @@ class StorePaperSizeRequest extends FormRequest
     public function rules(): array
     {
         return [
-            //
+            // Validate the request
+            'paper_name' => 'required',
+            'width' => 'required|numeric',
+            'height' => 'required|numeric'
         ];
     }
 }

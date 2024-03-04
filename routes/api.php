@@ -78,13 +78,16 @@ Route::group([
             ->name('paper-sizes.paginated');
 
         // Route api for positions
-        Route::apiResource('/positions', 'App\Http\Controllers\PositionController');
+        Route::apiResource('/positions', 'App\Http\Controllers\PositionController')
+            ->only('index');
 
         // Route api for designations
-        Route::apiResource('/designations', 'App\Http\Controllers\DesignationController');
+        Route::apiResource('/designations', 'App\Http\Controllers\DesignationController')
+            ->only('index');
 
         // Route api for stations
-        Route::apiResource('/stations', 'App\Http\Controllers\StationController');
+        Route::apiResource('/stations', 'App\Http\Controllers\StationController')
+            ->only('index');
 
         // Print api routes
         Route::get('/print/{printType}', [PrintController::class, 'index'])->name('print.index');

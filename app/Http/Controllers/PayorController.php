@@ -3,8 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\Payor;
-use App\Http\Requests\StorePayorRequest;
-use App\Http\Requests\UpdatePayorRequest;
 
 class PayorController extends Controller
 {

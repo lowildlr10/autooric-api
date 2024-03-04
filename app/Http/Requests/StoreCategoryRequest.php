@@ -25,7 +25,6 @@ class StoreCategoryRequest extends FormRequest
         return [
             // Validate the request
             'category_name' => 'required',
-            'order_no' => ''
         ];
     }
 }

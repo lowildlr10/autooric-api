@@ -83,7 +83,11 @@ class DiscountController extends Controller
      */
     public function show(Discount $discount)
     {
-        //
+        // Return a json response of the discount
+        return response()->json([
+            'data' => $discount,
+            'success' => 1
+        ], 201);
     }
 
     /**
@@ -91,7 +95,33 @@ class DiscountController extends Controller
      */
     public function update(UpdateDiscountRequest $request, Discount $discount)
     {
-        //
+        // Validate the request
+        $request->validated();
+
+        try {
+            // Create a new discount
+            $discount->update([
+                'discount_name' => $request->discount_name,
+                'percent' => $request->percent,
+                'requires_card_no' => $request->requires_card_no,
+                'is_active' => $request->is_active
+            ]);
+        } catch (\Throwable $th) {
+            return response()->json([
+                'data' => [
+                    'message' => 'Failed to update discount',
+                    'error' => 1
+                ]
+            ], 422);
+        }
+
+        return response()->json([
+            'data' => [
+                'data' => $request->all(),
+                'message' => 'Discount updated successfully',
+                'success' => 1
+            ]
+        ], 201);
     }
 
     /**
@@ -99,6 +129,25 @@ class DiscountController extends Controller
      */
     public function destroy(Discount $discount)
     {
-        //
+        try {
+            $discount->delete();
+        } catch (\Throwable $th) {
+            return response()->json([
+                'data' => [
+                    'message' =>
+                        $th->getCode() === '23000' ?
+                            'Failed to delete discount. There are a connected OR/s for this record.' :
+                            'Unknown error occured',
+                    'error' => 1
+                ]
+            ], 422);
+        }
+
+        return response()->json([
+            'data' => [
+                'message' => 'Discount deleted successfully',
+                'success' => 1
+            ]
+        ], 201);
     }
 }

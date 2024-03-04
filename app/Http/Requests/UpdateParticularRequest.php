@@ -11,7 +11,8 @@ class UpdateParticularRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return false;
+        // Check if user is user role is admin or staff
+        return $this->user()->role === 'admin' || $this->user()->role === 'staff';
     }
 
     /**
@@ -22,7 +23,11 @@ class UpdateParticularRequest extends FormRequest
     public function rules(): array
     {
         return [
-            //
+            // Validate the request
+            'particular_name' => 'required',
+            'category_id' => 'required',
+            'default_amount' => 'nullable',
+            'order_no' => 'required|numeric'
         ];
     }
 }

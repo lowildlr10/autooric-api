@@ -55,7 +55,7 @@ class CategoryController extends Controller
         try {
             // Create a new category
             $category = Category::create([
-                'category' => $request->category
+                'category_name' => $request->category
             ]);
         } catch (\Throwable $th) {
             return response()->json([
@@ -80,7 +80,11 @@ class CategoryController extends Controller
      */
     public function show(Category $category)
     {
-        //
+        // Return a json response of the category
+        return response()->json([
+            'data' => $category,
+            'success' => 1
+        ], 201);
     }
 
     /**
@@ -88,7 +92,31 @@ class CategoryController extends Controller
      */
     public function update(UpdateCategoryRequest $request, Category $category)
     {
-        //
+        // Validate the request
+        $request->validated();
+
+        try {
+            // Create a new category
+            $category->update([
+                'category_name' => $request->category,
+                'order_no' => $request->order_no
+            ]);
+        } catch (\Throwable $th) {
+            return response()->json([
+                'data' => [
+                    'message' => 'Failed to update category',
+                    'error' => 1
+                ]
+            ], 422);
+        }
+
+        return response()->json([
+            'data' => [
+                'data' => $request->all(),
+                'message' => 'Category updated successfully',
+                'success' => 1
+            ]
+        ], 201);
     }
 
     /**
@@ -96,6 +124,25 @@ class CategoryController extends Controller
      */
     public function destroy(Category $category)
     {
-        //
+        try {
+            $category->delete();
+        } catch (\Throwable $th) {
+            return response()->json([
+                'data' => [
+                    'message' =>
+                        $th->getCode() === '23000' ?
+                            'Failed to delete category. There are a connected OR/s for this record.' :
+                            'Unknown error occured',
+                    'error' => 1
+                ]
+            ], 422);
+        }
+
+        return response()->json([
+            'data' => [
+                'message' => 'Category deleted successfully',
+                'success' => 1
+            ]
+        ], 201);
     }
 }

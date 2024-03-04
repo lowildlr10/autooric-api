@@ -52,7 +52,32 @@ class PaperSizeController extends Controller
      */
     public function store(StorePaperSizeRequest $request)
     {
-        //
+        // Validate the request
+        $request->validated();
+
+        try {
+            // Create a new paperSize
+            $paperSize = PaperSize::create([
+                'paper_name' => $request->paper_name,
+                'width' => $request->width,
+                'height' => $request->height
+            ]);
+        } catch (\Throwable $th) {
+            return response()->json([
+                'data' => [
+                    'message' => 'Failed to create paper size',
+                    'error' => 1
+                ]
+            ], 422);
+        }
+
+        return response()->json([
+            'data' => [
+                'data' => $request->all(),
+                'message' => 'Paper size created successfully',
+                'success' => 1
+            ]
+        ], 201);
     }
 
     /**
@@ -60,7 +85,11 @@ class PaperSizeController extends Controller
      */
     public function show(PaperSize $paperSize)
     {
-        //
+        // Return a json response of the paper size
+        return response()->json([
+            'data' => $paperSize,
+            'success' => 1
+        ], 201);
     }
 
     /**
@@ -68,7 +97,32 @@ class PaperSizeController extends Controller
      */
     public function update(UpdatePaperSizeRequest $request, PaperSize $paperSize)
     {
-        //
+        // Validate the request
+        $request->validated();
+
+        try {
+            // Create a new category
+            $paperSize->update([
+                'paper_name' => $request->paper_name,
+                'width' => $request->width,
+                'height' => $request->height
+            ]);
+        } catch (\Throwable $th) {
+            return response()->json([
+                'data' => [
+                    'message' => 'Failed to update paper size',
+                    'error' => 1
+                ]
+            ], 422);
+        }
+
+        return response()->json([
+            'data' => [
+                'data' => $request->all(),
+                'message' => 'Paper size updated successfully',
+                'success' => 1
+            ]
+        ], 201);
     }
 
     /**
@@ -76,6 +130,22 @@ class PaperSizeController extends Controller
      */
     public function destroy(PaperSize $paperSize)
     {
-        //
+        try {
+            $paperSize->delete();
+        } catch (\Throwable $th) {
+            return response()->json([
+                'data' => [
+                    'message' => 'Unknown error occured',
+                    'error' => 1
+                ]
+            ], 422);
+        }
+
+        return response()->json([
+            'data' => [
+                'message' => 'Paper size deleted successfully',
+                'success' => 1
+            ]
+        ], 201);
     }
 }

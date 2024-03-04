@@ -11,7 +11,8 @@ class UpdatePaperSizeRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return false;
+        // Check if user is user role is admin or staff
+        return $this->user()->role === 'admin' || $this->user()->role === 'staff';
     }
 
     /**
@@ -21,8 +22,11 @@ class UpdatePaperSizeRequest extends FormRequest
      */
     public function rules(): array
     {
-        return [
-            //
+       return [
+            // Validate the request
+            'paper_name' => 'required',
+            'width' => 'required|numeric',
+            'height' => 'required|numeric'
         ];
     }
 }

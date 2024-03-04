@@ -26,8 +26,7 @@ class StoreParticularRequest extends FormRequest
             // Validate the request
             'particular_name' => 'required',
             'category_id' => 'required',
-            'default_amount' => 'nullable',
-            'order_no' => ''
+            'default_amount' => 'nullable'
         ];
     }
 
