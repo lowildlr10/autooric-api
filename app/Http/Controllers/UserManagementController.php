@@ -285,6 +285,15 @@ class UserManagementController extends Controller
      */
     public function destroy(Request $request, User $user)
     {
+        if (User::count() === 1) {
+            return response()->json([
+                'data' => [
+                    'message' => 'Failed to delete user. System has only one user registerd.',
+                    'error' => 1
+                ]
+            ], 422);
+        }
+
         $userLog = new UserLogsServices(
             $request->user()->id,
             $request->getClientIp(),
