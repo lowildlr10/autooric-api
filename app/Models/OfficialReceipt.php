@@ -18,6 +18,7 @@ class OfficialReceipt extends Model
 
     protected $fillable = [
         'accountable_personnel_id',
+        'deposited_by_id',
         'receipt_date',
         'deposited_date',
         'cancelled_date',
@@ -30,6 +31,9 @@ class OfficialReceipt extends Model
         'amount_words',
         'card_no',
         'payment_mode',
+        'drawee_bank',
+        'check_no',
+        'check_date',
         'is_cancelled'
     ];
 
@@ -45,6 +49,11 @@ class OfficialReceipt extends Model
     public function accountablePersonnel()
     {
         return $this->belongsTo(User::class, 'accountable_personnel_id');
+    }
+
+    public function depositedBy()
+    {
+        return $this->belongsTo(User::class, 'deposited_by_id');
     }
 
     public function payor()

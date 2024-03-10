@@ -33,7 +33,10 @@ class StoreOfficialReceiptRequest extends FormRequest
             'deposit' => 'nullable',
             'amount_words' => 'required',
             'card_no' => 'nullable',
-            'payment_mode' => 'required'
+            'payment_mode' => 'required',
+            'drawee_bank' => 'nullable',
+            'check_no' => 'nullable',
+            'check_date' => 'nullable',
         ];
     }
 

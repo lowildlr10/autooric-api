@@ -17,7 +17,7 @@ return new class extends Migration
             $table->foreign('category_id')
                 ->references('id')
                 ->on('categories');
-            $table->string('particular_name')->unique();
+            $table->string('particular_name');
             $table->double('default_amount', 20, 2)->nullable();
             $table->integer('order_no')->unsigned();
             $table->timestamps();

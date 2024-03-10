@@ -23,7 +23,8 @@ class OfficialReceiptController extends Controller
             'natureCollection:id,particular_name',
             'payor:id,payor_name',
             'discount:id,discount_name,percent,requires_card_no',
-            'accountablePersonnel:id,first_name,last_name'
+            'accountablePersonnel:id,first_name,last_name',
+            'depositedBy:id,first_name,last_name'
         ]);
 
         try {
@@ -82,7 +83,10 @@ class OfficialReceiptController extends Controller
                 'discount_id' => $request->discount_id,
                 'card_no' => $request->card_no,
                 'amount_words' => $request->amount_words,
-                'payment_mode' => $request->payment_mode
+                'payment_mode' => $request->payment_mode,
+                'drawee_bank' => $request->drawee_bank,
+                'check_no' => $request->check_no,
+                'check_date' => $request->check_date
             ]);
         } catch (\Throwable $th) {
             return response()->json([
@@ -145,7 +149,8 @@ class OfficialReceiptController extends Controller
             // Update the official receipt
             $officialReceipt->update([
                 'deposited_date' => now(),
-                'deposit' => $request->deposit
+                'deposit' => $request->deposit,
+                'deposited_by_id' => $request->user()->id,
             ]);
         } catch (\Throwable $th) {
             return response()->json([

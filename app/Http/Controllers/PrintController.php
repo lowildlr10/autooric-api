@@ -78,6 +78,10 @@ class PrintController extends Controller
             $officialReceipt->accountablePersonnel->last_name
         );
         $paymentMode = strtolower($officialReceipt->payment_mode);
+        $draweeBank = strtoupper($officialReceipt->drawee_bank);
+        $checkNo = strtoupper($officialReceipt->check_no);
+        $checkDate = $officialReceipt->check_date ?
+            date('m/d/Y', strtotime($officialReceipt->check_date)) : '';
 
         // Get the paper size
         $paperSize = PaperSize::find($paperSizeId);
@@ -162,7 +166,13 @@ class PrintController extends Controller
                 break;
             case 'check':
                 $pdf->SetXY(0.3, 6.222);
-                $pdf->Cell(1.6, 0, '4', 0, 1, 'L');
+                $pdf->Cell(1.35, 0, '4', 0, 1, 'L');
+
+                $pdf->SetXY(1.6, 6.28);
+                $pdf->SetFont('helvetica', 'B', 8);
+                $pdf->MultiCell(0.73, 0, $draweeBank, 0, 'L', false, 0);
+                $pdf->MultiCell(0.75, 0, $checkNo, 0, 'L', false, 0);
+                $pdf->MultiCell(0.84, 0, $checkDate, 0, 'L');
                 break;
             case 'money_order':
                 $pdf->SetXY(0.3, 6.422);

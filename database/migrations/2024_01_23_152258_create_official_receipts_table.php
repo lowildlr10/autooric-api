@@ -17,6 +17,10 @@ return new class extends Migration
             $table->foreign('accountable_personnel_id')
                 ->references('id')
                 ->on('users');
+            $table->uuid('deposited_by_id')->nullable();
+            $table->foreign('deposited_by_id')
+                ->references('id')
+                ->on('users');
             $table->date('receipt_date');
             $table->date('deposited_date')->nullable();
             $table->date('cancelled_date')->nullable();
@@ -38,6 +42,9 @@ return new class extends Migration
             $table->string('amount_words');
             $table->string('card_no')->nullable();
             $table->enum('payment_mode', ['cash', 'check', 'money_order']);
+            $table->string('drawee_bank')->nullable();
+            $table->string('check_no')->nullable();
+            $table->date('check_date')->nullable();
             $table->boolean('is_cancelled')->default(false);
             $table->timestamps();
         });

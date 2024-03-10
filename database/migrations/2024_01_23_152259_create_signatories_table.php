@@ -14,15 +14,7 @@ return new class extends Migration
         Schema::create('signatories', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->string('signatory_name');
-            $table->uuid('designation_id');
-            $table->foreign('designation_id')
-                ->references('id')
-                ->on('designations');
-            $table->uuid('station_id');
-            $table->foreign('station_id')
-                ->references('id')
-                ->on('stations');
-            $table->json('report')->default(NULL);
+            $table->json('report_module')->default(NULL);
             $table->boolean('is_active')->default(true);
             $table->timestamps();
         });
