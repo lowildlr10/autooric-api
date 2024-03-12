@@ -8,6 +8,7 @@ use App\Http\Controllers\PrintController;
 use App\Http\Controllers\ParticularController;
 use App\Http\Controllers\DiscountController;
 use App\Http\Controllers\PayorController;
+use App\Http\Controllers\SignatoryController;
 use App\Http\Controllers\PaperSizeController;
 use App\Http\Controllers\CategoryController;
 
@@ -71,6 +72,11 @@ Route::group([
         Route::middleware('is_admin')->group(function() {
             Route::apiResource('/user-management/users', 'App\Http\Controllers\UserManagementController');
         });
+
+        // Route api for signatory
+        Route::apiResource('/signatories', 'App\Http\Controllers\SignatoryController');
+        Route::get('/signatories-paginated', [SignatoryController::class, 'indexPaginated'])
+            ->name('signatories.paginated');
 
         // Route api for paper size
         Route::apiResource('/paper-sizes', 'App\Http\Controllers\PaperSizeController');

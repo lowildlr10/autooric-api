@@ -23,7 +23,10 @@ class UpdateSignatoryRequest extends FormRequest
     public function rules(): array
     {
         return [
-            //
+            // Validate the request
+            'signatory_name' => 'required',
+            'report_module' => 'nullable',
+            'is_active' => 'boolean|required'
         ];
     }
 }

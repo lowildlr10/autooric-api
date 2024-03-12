@@ -12,6 +12,12 @@ class Signatory extends Model
     protected $keyType = 'string';
     public $incrementing = false;
 
+    protected $fillable = [
+        'signatory_name',
+        'report_module',
+        'is_active'
+    ];
+
     // automatic `id` uuid generation for primary key
     protected static function boot()
     {
