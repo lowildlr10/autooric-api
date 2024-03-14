@@ -23,16 +23,44 @@ class PrintController extends Controller
                 $this->printOfficialReceipt($orId, $paperSizeId, $hasTemplate);
                 break;
 
-            case 'cash-receipt':
-                return $printType;
+            case 'cash-receipts-record':
+                echo json_encode([
+                    'data' => [
+                        'filename' => $printType,
+                        'pdf' => $printType,
+                        'success' => 1
+                    ]
+                ], 201);
                 break;
 
             case 'report-collection':
-                return $printType;
+                 echo json_encode([
+                    'data' => [
+                        'filename' => $printType,
+                        'pdf' => $printType,
+                        'success' => 1
+                    ]
+                ], 201);
                 break;
 
             case 'summary-fees':
-                return $printType;
+                 echo json_encode([
+                    'data' => [
+                        'filename' => $printType,
+                        'pdf' => $printType,
+                        'success' => 1
+                    ]
+                ], 201);
+                break;
+
+            case 'e-receipts':
+                 echo json_encode([
+                    'data' => [
+                        'filename' => $printType,
+                        'pdf' => $printType,
+                        'success' => 1
+                    ]
+                ], 201);
                 break;
 
             default:

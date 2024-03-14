@@ -21,6 +21,10 @@ class SignatoryController extends Controller
         $signatories = Signatory::orderBy('signatory_name')
             ->get();
 
+        foreach ($signatories as $signatory) {
+            $signatory->report_module = json_decode($signatory->report_module);
+        }
+
         return response()->json([
             'data' => $signatories
         ]);
