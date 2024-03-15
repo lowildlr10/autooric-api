@@ -2,10 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Category;
+use App\Models\Designation;
 use Illuminate\Http\Request;
 use App\Models\OfficialReceipt;
 use App\Models\Discount;
 use App\Models\PaperSize;
+use App\Models\Position;
+use App\Models\Station;
+use Illuminate\Http\JsonResponse;
 use TCPDF;
 
 class PrintController extends Controller
@@ -20,20 +25,29 @@ class PrintController extends Controller
                 $orId = $request->or_id;
                 $paperSizeId = $request->paper_size_id;
                 $hasTemplate = (int) $request->has_template ?? false;
-                $this->printOfficialReceipt($orId, $paperSizeId, $hasTemplate);
-                break;
+                return $this->printOfficialReceipt($orId, $paperSizeId, $hasTemplate);
 
             case 'cash-receipts-record':
-                echo json_encode([
-                    'data' => [
-                        'filename' => $printType,
-                        'pdf' => $printType,
-                        'success' => 1
-                    ]
-                ], 201);
-                break;
+                $from = $request->from;
+                $to = $request->to;
+                $particularsIds = json_decode($request->particulars_ids);
+                $certifiedCorrectId = $request->certified_correct_id;
+                $paperSizeId = $request->paper_size_id;
+                return $this->printCashReceiptsRecord(
+                    $from,
+                    $to,
+                    $particularsIds,
+                    $certifiedCorrectId,
+                    $paperSizeId
+                );
 
             case 'report-collection':
+                $from = $request->from;
+                $to = $request->to;
+                $categoryIds = json_decode($request->category_ids);
+                $certifiedCorrectId = $request->certified_correct_id;
+                $notedById = $request->noted_by_id;
+                $paperSizeId = $request->paper_size_id;
                  echo json_encode([
                     'data' => [
                         'filename' => $printType,
@@ -44,6 +58,10 @@ class PrintController extends Controller
                 break;
 
             case 'summary-fees':
+                $from = $request->from;
+                $to = $request->to;
+                $categoryIds = json_decode($request->category_ids);
+                $paperSizeId = $request->paper_size_id;
                  echo json_encode([
                     'data' => [
                         'filename' => $printType,
@@ -54,6 +72,10 @@ class PrintController extends Controller
                 break;
 
             case 'e-receipts':
+                $from = $request->from;
+                $to = $request->to;
+                $particularsIds = json_decode($request->particulars_ids);
+                $paperSizeId = $request->paper_size_id;
                  echo json_encode([
                     'data' => [
                         'filename' => $printType,
@@ -74,7 +96,255 @@ class PrintController extends Controller
         }
     }
 
-    public function printOfficialReceipt($orId, $paperSizeId, $hasTemplate = false)
+    private function generateDateRange($from, $to) : array {
+        $dates = [];
+        $startDate = strtotime($from);
+        $endDate = strtotime($to);
+
+        while ($startDate <= $endDate) {
+            $dates[] = date('Y-m-d', $startDate);
+            $startDate = strtotime('+1 day', $startDate);
+        }
+
+        return $dates;
+    }
+
+    public function printCashReceiptsRecord(
+        $from,
+        $to,
+        $particularsIds = [],
+        $certifiedCorrectId,
+        $paperSizeId
+    ) : JsonResponse
+    {
+        $dates = $this->generateDateRange($from, $to);
+        $categories = Category::with(['particulars'])
+            ->whereRelation('particulars', function($query) use($particularsIds) {
+                $query->whereIn('id', $particularsIds);
+            })
+            ->orderBy('order_no')
+            ->get();
+
+        // Get the paper size
+        $paperSize = PaperSize::find($paperSizeId);
+        $dimension = [
+            (double) $paperSize->height,
+            (double) $paperSize->width
+        ];
+
+        // Get current user
+        $firstName = auth()->user()->first_name;
+        $middleName = auth()->user()->middle_name ? auth()->user()->middle_name[0].'.' : '';
+        $lastName = auth()->user()->last_name;
+        $position = Position::find(auth()->user()->position_id);
+        $designation = Designation::find(auth()->user()->designation_id);
+        $station = Station::find(auth()->user()->station_id);
+        $fullName = $middleName ? "$firstName $middleName $lastName" : "$firstName $lastName";
+
+        $docTitle = "Cash Receipt Record ($from to $to)";
+        $fileame = "cash_receipt_record_$from-$to.pdf";
+
+        // Initiate PDF and configs
+        $pdf = new TCPDF('P', 'in', $dimension);
+        $pdf->SetCreator(PDF_CREATOR);
+        $pdf->SetAuthor(env('APP_NAME'));
+        $pdf->SetTitle($docTitle);
+        $pdf->SetSubject('Official Receipt');
+        $pdf->SetKeywords('OR, or, Official, Receipt, official, receipt');
+        $pdf->SetMargins(0.4, 0.2, 0.4);
+        // $pdf->SetHeaderMargin(0);
+        // $pdf->SetFooterMargin(0);
+        $pdf->setPrintHeader(false);
+        // $pdf->setPrintFooter(false);
+
+        foreach ($categories as $category) {
+            foreach ($category->particulars ?? [] as $particular) {
+                $orCount = OfficialReceipt::with([
+                        'payor', 'natureCollection', 'discount'
+                    ])
+                    ->where('nature_collection_id', $particular->id)
+                    ->whereBetween('receipt_date', [$from, $to])
+                    ->count();
+
+                if ($orCount > 0) {
+                    // Main content
+                    $pdf->AddPage();
+
+                    $paperWidth = $pdf->getPageWidth() - 0.8;
+
+                    $pdf->SetFont('helvetica', 'B', 16);
+                    $pdf->Cell(0, 0.7, 'CASH RECEIPT RECORD', 0, 1, 'C');
+
+                    $pdf->SetFont('helvetica', '', 14);
+                    $pdf->Cell(0, 0, 'REGIONAL FINANCE SERVICE OFFICE 15', 0, 1, 'C');
+                    $pdf->Ln();
+
+                    $pdf->SetFont('helvetica', '', 10);
+                    $pdf->Cell(0, 0, 'Page '.$pdf->PageNo(), 0, 1, 'R');
+                    $pdf->Ln(0.05);
+
+                    $pdf->SetFont('helvetica', 'B', 10);
+                    $pdf->Cell($paperWidth * 0.5062, 0, "$position->position_name $fullName", 1, 0, 'C');
+                    $pdf->Cell($paperWidth * 0.2362, 0, strtoupper($designation->designation_name), 1, 0, 'C');
+                    $pdf->Cell(0, 0, strtoupper($station->station_name), 1, 1, 'C');
+
+                    $pdf->SetFont('helvetica', 'I', 10);
+                    $pdf->Cell($paperWidth * 0.5062, 0, 'Accountable Personnel', 1, 0, 'C');
+                    $pdf->Cell($paperWidth * 0.2362, 0, 'Official Designation', 1, 0, 'C');
+                    $pdf->Cell(0, 0, 'Station', 1, 1, 'C');
+
+                    $pdf->SetFont('helvetica', 'B', 10);
+                    $pdf->SetFillColor(197, 225, 178);
+                    $pdf->MultiCell(
+                        $paperWidth * 0.108, 0.45, 'Date', 1, 'C', 1, 0,
+                        maxh: 0.45, valign: 'M', fitcell: true
+                    );
+                    $pdf->MultiCell(
+                        $paperWidth * 0.1003, 0.45, 'OR No.', 1, 'C', 1, 0,
+                        maxh: 0.45, valign: 'M', fitcell: true
+                    );
+                    $pdf->MultiCell(
+                        $paperWidth * 0.298, 0.45, 'Name of Payor', 1, 'C', 1, 0,
+                        maxh: 0.45, valign: 'M', fitcell: true
+                    );
+                    $pdf->MultiCell(
+                        $paperWidth * 0.148, 0.45, 'Nature of Collection', 1, 'C', 1, 0,
+                        maxh: 0.45, valign: 'M', fitcell: true
+                    );
+                    $pdf->MultiCell(
+                        $paperWidth * 0.088, 0.45, 'Collection', 1, 'C', 1, 0,
+                        maxh: 0.45, valign: 'M', fitcell: true
+                    );
+                    $pdf->MultiCell(
+                        $paperWidth * 0.131, 0.45, 'Deposit', 1, 'C', 1, 0,
+                        maxh: 0.45, valign: 'M', fitcell: true
+                    );
+                    $pdf->MultiCell(
+                        0, 0.45, 'Undeposited Collection', 1, 'C', 1, 1,
+                        maxh: 0.45, valign: 'M', fitcell: true
+                    );
+
+                    $pdf->SetFont('helvetica', '', 10);
+                    $pdf->SetFillColor(0, 0, 0);
+
+                    foreach ($dates as $date) {
+                        $officialReceipts = OfficialReceipt::with([
+                                'payor', 'natureCollection', 'discount'
+                            ])
+                            ->where('nature_collection_id', $particular->id)
+                            ->where('receipt_date', $date)
+                            ->orderBy('receipt_date')
+                            ->get();
+                        $totalDeposit = 0;
+                        $totalUndeposit = 0;
+                        $hasOrs = false;
+
+                        foreach ($officialReceipts ?? [] as $or) {
+                            $hasOrs = true;
+                            $orNo = $or->or_no;
+                            $payorName = strtoupper($or->payor->payor_name);
+                            $natureCollection = $or->natureCollection->particular_name;
+                            $collection = explode('.', number_format(($or->amount ?? 0), 2));
+                            $collectionInt = $collection[0];
+                            $collectionDec = $collection[1];
+                            $deposit = number_format($or->deposit ?? 0, 2);
+                            $undeposit = number_format(($or->amount ?? 0) - ($or->deposit ?? 0), 2);
+
+                            $pdf->SetFont('helvetica', '', 10);
+
+                            $pdf->MultiCell(
+                                $paperWidth * 0.108, 0, $date, 1, 'C', 0, 0,
+                                maxh: 0.4, valign: 'M', fitcell: true
+                            );
+                            $pdf->MultiCell(
+                                $paperWidth * 0.1003, 0, $orNo, 1, 'C', 0, 0,
+                                maxh: 0.4, valign: 'M', fitcell: true
+                            );
+                            $pdf->MultiCell(
+                                $paperWidth * 0.298, 0, $payorName, 1, 'L', 0, 0,
+                                maxh: 0.4, valign: 'M', fitcell: true
+                            );
+                            $pdf->MultiCell(
+                                $paperWidth * 0.148, 0, $natureCollection, 1, 'C', 0, 0,
+                                maxh: 0.4, valign: 'M', fitcell: true
+                            );
+                            $pdf->MultiCell(
+                                $paperWidth * 0.044, 0, $collectionInt, 1, 'C', 0, 0,
+                                maxh: 0.4, valign: 'M', fitcell: true
+                            );
+                            $pdf->MultiCell(
+                                $paperWidth * 0.044, 0, $collectionDec, 1, 'C', 0, 0,
+                                maxh: 0.4, valign: 'M', fitcell: true
+                            );
+                            $pdf->MultiCell(
+                                $paperWidth * 0.131, 0, $deposit, 1, 'C', 0, 0,
+                                maxh: 0.4, valign: 'M', fitcell: true
+                            );
+                            $pdf->MultiCell(
+                                0, 0, $undeposit, 1, 'C', 0, 1,
+                                maxh: 0.4, valign: 'M', fitcell: true
+                            );
+
+                            $totalDeposit += $or->deposit ?? 0;
+                            //$totalUndeposit += $undeposit;
+                        }
+
+                        if ($hasOrs) {
+                            $pdf->SetFont('helvetica', 'B', 10);
+
+                            $pdf->MultiCell(
+                                $paperWidth * 0.108, 0.2, $date, 1, 'C', 0, 0,
+                                maxh: 0.2, valign: 'M', fitcell: true
+                            );
+                            $pdf->MultiCell(
+                                $paperWidth * 0.1003, 0.2, 'DEPOSIT', 1, 'C', 0, 0,
+                                maxh: 0.2, valign: 'M', fitcell: true
+                            );
+                            $pdf->MultiCell(
+                                $paperWidth * 0.298, 0.2, '', 1, 'C', 0, 0,
+                                maxh: 0.2, valign: 'M', fitcell: true
+                            );
+                            $pdf->MultiCell(
+                                $paperWidth * 0.148, 0.2, '', 1, 'C', 0, 0,
+                                maxh: 0.2, valign: 'M', fitcell: true
+                            );
+                            $pdf->MultiCell(
+                                $paperWidth * 0.044, 0.2, '', 1, 'C', 0, 0,
+                                maxh: 0.2, valign: 'M', fitcell: true
+                            );
+                            $pdf->MultiCell(
+                                $paperWidth * 0.044, 0.2, '', 1, 'C', 0, 0,
+                                maxh: 0.2, valign: 'M', fitcell: true
+                            );
+                            $pdf->MultiCell(
+                                $paperWidth * 0.131, 0.2, number_format($totalDeposit, 2), 1, 'C', 0, 0,
+                                maxh: 0.2, valign: 'M', fitcell: true
+                            );
+                            $pdf->MultiCell(
+                                0, 0.2, number_format($totalUndeposit, 2), 1, 'C', 0, 1,
+                                maxh: 0.2, valign: 'M', fitcell: true
+                            );
+                        }
+                    }
+                }
+            }
+        }
+
+        $pdfBlob = $pdf->Output($fileame, 'S');
+        $pdfBase64 = base64_encode($pdfBlob);
+
+        return response()->json([
+            'data' => [
+                'filename' => $fileame,
+                'pdf' => $pdfBase64,
+                'success' => 1
+            ]
+        ], 201)
+            ->header('Access-Control-Allow-Origin', '*')
+            ->header('Content-Type', 'application/json');
+    }
+
+    public function printOfficialReceipt($orId, $paperSizeId, $hasTemplate = false) : JsonResponse
     {
         $with = [
             'accountablePersonnel', 'payor', 'natureCollection', 'discount'
@@ -221,15 +491,14 @@ class PrintController extends Controller
         $pdfBlob = $pdf->Output($fileame, 'S');
         $pdfBase64 = base64_encode($pdfBlob);
 
-        header('Content-Type: application/json');
-        header('Access-Control-Allow-Origin: *');
-
-        echo json_encode([
+        return response()->json([
             'data' => [
                 'filename' => $fileame,
                 'pdf' => $pdfBase64,
                 'success' => 1
             ]
-        ], 201);
+        ], 201)
+            ->header('Access-Control-Allow-Origin', '*')
+            ->header('Content-Type', 'application/json');
     }
 }
