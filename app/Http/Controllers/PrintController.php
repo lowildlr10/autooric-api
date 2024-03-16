@@ -9,12 +9,25 @@ use App\Models\OfficialReceipt;
 use App\Models\Discount;
 use App\Models\PaperSize;
 use App\Models\Position;
+use App\Models\Signatory;
 use App\Models\Station;
 use Illuminate\Http\JsonResponse;
+use PhpParser\Node\Expr\Cast\Object_;
 use TCPDF;
+use TCPDF_FONTS;
 
 class PrintController extends Controller
 {
+    public function __construct()
+    {
+        $this->fontArial = TCPDF_FONTS::addTTFfont(public_path('fonts/arial.ttf'), 'TrueTypeUnicode', '', 96);
+        $this->fontArialBold = TCPDF_FONTS::addTTFfont(public_path('fonts/arialbd.ttf'), 'TrueTypeUnicode', '', 96);
+        $this->fontArialItalic = TCPDF_FONTS::addTTFfont(public_path('fonts/ariali.ttf'), 'TrueTypeUnicode', '', 96);
+        $this->fontArialBoldItalic = TCPDF_FONTS::addTTFfont(public_path('fonts/arialbi.ttf'), 'TrueTypeUnicode', '', 96);
+        $this->fontArialNarrow = TCPDF_FONTS::addTTFfont(public_path('fonts/arialn.ttf'), 'TrueTypeUnicode', '', 96);
+        $this->fontArialNarrowBold = TCPDF_FONTS::addTTFfont(public_path('fonts/arialnb.ttf'), 'TrueTypeUnicode', '', 96);
+    }
+
     /**
      * Display a listing of the resource.
      */
@@ -109,6 +122,36 @@ class PrintController extends Controller
         return $dates;
     }
 
+    private function getSignatory($signatoryId, $signatoryType) : Object
+    {
+        // Get Certified Correct Signatory
+        $signatory = Signatory::find($signatoryId);
+        $signatory->report_module = json_decode($signatory->report_module);
+        $position = '';
+        $designation = '';
+        $station = '';
+
+        foreach ($signatory->report_module ?? [] as $module) {
+            if ($module->is_enabled && $module->report === $signatoryType) {
+                $positionObj = Position::find($module->position_id);
+                $designationObj = Designation::find($module->designation_id);
+                $stationObj = Station::find($module->station_id);
+
+                $position = $positionObj->position_name;
+                $designation = $designationObj->designation_name;
+                $station = $stationObj->station_name;
+                break;
+            }
+        }
+
+        return (Object) [
+            'signatory_name' => $signatory->signatory_name,
+            'position' => $position,
+            'designation' => $designation,
+            'station' => $station
+        ];
+    }
+
     public function printCashReceiptsRecord(
         $from,
         $to,
@@ -141,6 +184,12 @@ class PrintController extends Controller
         $station = Station::find(auth()->user()->station_id);
         $fullName = $middleName ? "$firstName $middleName $lastName" : "$firstName $lastName";
 
+        // Get Certified Correct Signatory
+        $certifiedCorrect = $this->getSignatory($certifiedCorrectId, 'crr_certified_correct');
+        $certifiedCorrectName = $certifiedCorrect->signatory_name;
+        $certifiedCorrectPosition = $certifiedCorrect->position;
+        $certifiedCorrectDesignation = $certifiedCorrect->designation;
+
         $docTitle = "Cash Receipt Record ($from to $to)";
         $fileame = "cash_receipt_record_$from-$to.pdf";
 
@@ -151,11 +200,8 @@ class PrintController extends Controller
         $pdf->SetTitle($docTitle);
         $pdf->SetSubject('Official Receipt');
         $pdf->SetKeywords('OR, or, Official, Receipt, official, receipt');
-        $pdf->SetMargins(0.4, 0.2, 0.4);
-        // $pdf->SetHeaderMargin(0);
-        // $pdf->SetFooterMargin(0);
+        $pdf->SetMargins(0.4, 0.3, 0.4);
         $pdf->setPrintHeader(false);
-        // $pdf->setPrintFooter(false);
 
         foreach ($categories as $category) {
             foreach ($category->particulars ?? [] as $particular) {
@@ -172,59 +218,61 @@ class PrintController extends Controller
 
                     $paperWidth = $pdf->getPageWidth() - 0.8;
 
-                    $pdf->SetFont('helvetica', 'B', 16);
+                    $pdf->SetFont($this->fontArialBold, 'B', 16);
                     $pdf->Cell(0, 0.7, 'CASH RECEIPT RECORD', 0, 1, 'C');
 
-                    $pdf->SetFont('helvetica', '', 14);
+                    $pdf->SetFont($this->fontArial, '', 14);
                     $pdf->Cell(0, 0, 'REGIONAL FINANCE SERVICE OFFICE 15', 0, 1, 'C');
                     $pdf->Ln();
 
-                    $pdf->SetFont('helvetica', '', 10);
-                    $pdf->Cell(0, 0, 'Page '.$pdf->PageNo(), 0, 1, 'R');
+                    $pdf->SetFont($this->fontArial, '', 10);
+                    $pdf->Cell(0, 0, 'Page 1', 0, 1, 'R');
                     $pdf->Ln(0.05);
 
-                    $pdf->SetFont('helvetica', 'B', 10);
-                    $pdf->Cell($paperWidth * 0.5062, 0, "$position->position_name $fullName", 1, 0, 'C');
-                    $pdf->Cell($paperWidth * 0.2362, 0, strtoupper($designation->designation_name), 1, 0, 'C');
+                    $pdf->SetFont($this->fontArialBold, 'B', 10);
+                    $pdf->Cell($paperWidth * 0.46, 0, "$position->position_name $fullName", 1, 0, 'C');
+                    $pdf->Cell($paperWidth * 0.31, 0, strtoupper($designation->designation_name), 1, 0, 'C');
                     $pdf->Cell(0, 0, strtoupper($station->station_name), 1, 1, 'C');
 
-                    $pdf->SetFont('helvetica', 'I', 10);
-                    $pdf->Cell($paperWidth * 0.5062, 0, 'Accountable Personnel', 1, 0, 'C');
-                    $pdf->Cell($paperWidth * 0.2362, 0, 'Official Designation', 1, 0, 'C');
+                    $pdf->SetFont($this->fontArial, 'I', 10);
+                    $pdf->Cell($paperWidth * 0.46, 0, 'Accountable Personnel', 1, 0, 'C');
+                    $pdf->Cell($paperWidth * 0.31, 0, 'Official Designation', 1, 0, 'C');
                     $pdf->Cell(0, 0, 'Station', 1, 1, 'C');
 
-                    $pdf->SetFont('helvetica', 'B', 10);
+                    $pdf->SetFont($this->fontArialBold, 'B', 10);
                     $pdf->SetFillColor(197, 225, 178);
                     $pdf->MultiCell(
-                        $paperWidth * 0.108, 0.45, 'Date', 1, 'C', 1, 0,
+                        $paperWidth * 0.12, 0.45, 'Date', 1, 'C', 1, 0,
                         maxh: 0.45, valign: 'M', fitcell: true
                     );
                     $pdf->MultiCell(
-                        $paperWidth * 0.1003, 0.45, 'OR No.', 1, 'C', 1, 0,
+                        $paperWidth * 0.09, 0.45, 'OR No.', 1, 'C', 1, 0,
                         maxh: 0.45, valign: 'M', fitcell: true
                     );
                     $pdf->MultiCell(
-                        $paperWidth * 0.298, 0.45, 'Name of Payor', 1, 'C', 1, 0,
+                        $paperWidth * 0.25, 0.45, 'Name of Payor', 1, 'C', 1, 0,
                         maxh: 0.45, valign: 'M', fitcell: true
                     );
                     $pdf->MultiCell(
-                        $paperWidth * 0.148, 0.45, 'Nature of Collection', 1, 'C', 1, 0,
+                        $paperWidth * 0.2, 0.45, 'Nature of Collection', 1, 'C', 1, 0,
                         maxh: 0.45, valign: 'M', fitcell: true
                     );
                     $pdf->MultiCell(
-                        $paperWidth * 0.088, 0.45, 'Collection', 1, 'C', 1, 0,
+                        $paperWidth * 0.11, 0.45, 'Collection', 1, 'C', 1, 0,
                         maxh: 0.45, valign: 'M', fitcell: true
                     );
                     $pdf->MultiCell(
-                        $paperWidth * 0.131, 0.45, 'Deposit', 1, 'C', 1, 0,
+                        $paperWidth * 0.11, 0.45, 'Deposit', 1, 'C', 1, 0,
                         maxh: 0.45, valign: 'M', fitcell: true
                     );
                     $pdf->MultiCell(
-                        0, 0.45, 'Undeposited Collection', 1, 'C', 1, 1,
+                        0, 0.45, 'Undeposited Collection', 1, 'C', 1, 0,
                         maxh: 0.45, valign: 'M', fitcell: true
                     );
 
-                    $pdf->SetFont('helvetica', '', 10);
+                    $pdf->Ln();
+
+                    $pdf->SetFont($this->fontArial, '', 10);
                     $pdf->SetFillColor(0, 0, 0);
 
                     foreach ($dates as $date) {
@@ -232,8 +280,8 @@ class PrintController extends Controller
                                 'payor', 'natureCollection', 'discount'
                             ])
                             ->where('nature_collection_id', $particular->id)
-                            ->where('receipt_date', $date)
-                            ->orderBy('receipt_date')
+                            ->where('created_at', 'LIKE', "%$date%")
+                            ->orderBy('created_at')
                             ->get();
                         $totalDeposit = 0;
                         $totalUndeposit = 0;
@@ -242,90 +290,117 @@ class PrintController extends Controller
                         foreach ($officialReceipts ?? [] as $or) {
                             $hasOrs = true;
                             $orNo = $or->or_no;
+                            $receiptDate = date("m/d/Y", strtotime($or->receipt_date));
+                            $isCancelled = !!$or->cancelled_date;
                             $payorName = strtoupper($or->payor->payor_name);
                             $natureCollection = $or->natureCollection->particular_name;
                             $collection = explode('.', number_format(($or->amount ?? 0), 2));
                             $collectionInt = $collection[0];
                             $collectionDec = $collection[1];
-                            $deposit = number_format($or->deposit ?? 0, 2);
-                            $undeposit = number_format(($or->amount ?? 0) - ($or->deposit ?? 0), 2);
+                            $deposit = number_format($or->deposit, 2);
+                            $undeposit = number_format($or->amount - $or->deposit, 2);
 
-                            $pdf->SetFont('helvetica', '', 10);
+                            $pdf->SetFont($this->fontArialNarrow, '', 11);
 
-                            $pdf->MultiCell(
-                                $paperWidth * 0.108, 0, $date, 1, 'C', 0, 0,
-                                maxh: 0.4, valign: 'M', fitcell: true
-                            );
-                            $pdf->MultiCell(
-                                $paperWidth * 0.1003, 0, $orNo, 1, 'C', 0, 0,
-                                maxh: 0.4, valign: 'M', fitcell: true
-                            );
-                            $pdf->MultiCell(
-                                $paperWidth * 0.298, 0, $payorName, 1, 'L', 0, 0,
-                                maxh: 0.4, valign: 'M', fitcell: true
-                            );
-                            $pdf->MultiCell(
-                                $paperWidth * 0.148, 0, $natureCollection, 1, 'C', 0, 0,
-                                maxh: 0.4, valign: 'M', fitcell: true
-                            );
-                            $pdf->MultiCell(
-                                $paperWidth * 0.044, 0, $collectionInt, 1, 'C', 0, 0,
-                                maxh: 0.4, valign: 'M', fitcell: true
-                            );
-                            $pdf->MultiCell(
-                                $paperWidth * 0.044, 0, $collectionDec, 1, 'C', 0, 0,
-                                maxh: 0.4, valign: 'M', fitcell: true
-                            );
-                            $pdf->MultiCell(
-                                $paperWidth * 0.131, 0, $deposit, 1, 'C', 0, 0,
-                                maxh: 0.4, valign: 'M', fitcell: true
-                            );
-                            $pdf->MultiCell(
-                                0, 0, $undeposit, 1, 'C', 0, 1,
-                                maxh: 0.4, valign: 'M', fitcell: true
-                            );
+                            $htmlTable = '<table border="1" cellpadding="2"><tr>';
+                            $htmlTable .= '
+                                <td width="12%" align="center">' . $receiptDate . '</td>
+                                <td width="9%" align="center">' . $orNo . '</td>
+                                <td width="25%" align="left">' . $payorName . '</td>
+                                <td width="20%" align="center">' . $natureCollection . '</td>
+                                <td width="6.6%" align="center">' . $collectionInt . '</td>
+                                <td width="4.4%" align="center">' . $collectionDec . '</td>
+                            ';
 
-                            $totalDeposit += $or->deposit ?? 0;
-                            //$totalUndeposit += $undeposit;
+                            if (!$isCancelled) {
+                                $htmlTable .= '
+                                    <td width="11%" align="center">' . $deposit . '</td>
+                                    <td width="12%" align="center">' . $undeposit . '</td>
+                                ';
+                                $totalDeposit += $or->deposit;
+                                $totalUndeposit += $or->amount - $or->deposit;
+                            } else {
+
+                                $htmlTable .= '
+                                    <td width="23%" align="center">Cancelled</td>
+                                ';
+                            }
+
+                            $htmlTable .= '</tr></table>';
+
+                            $pdf->writeHTML($htmlTable, ln: false);
                         }
 
                         if ($hasOrs) {
-                            $pdf->SetFont('helvetica', 'B', 10);
+                            $pdf->SetFont($this->fontArialNarrowBold, 'B', 11);
 
-                            $pdf->MultiCell(
-                                $paperWidth * 0.108, 0.2, $date, 1, 'C', 0, 0,
-                                maxh: 0.2, valign: 'M', fitcell: true
-                            );
-                            $pdf->MultiCell(
-                                $paperWidth * 0.1003, 0.2, 'DEPOSIT', 1, 'C', 0, 0,
-                                maxh: 0.2, valign: 'M', fitcell: true
-                            );
-                            $pdf->MultiCell(
-                                $paperWidth * 0.298, 0.2, '', 1, 'C', 0, 0,
-                                maxh: 0.2, valign: 'M', fitcell: true
-                            );
-                            $pdf->MultiCell(
-                                $paperWidth * 0.148, 0.2, '', 1, 'C', 0, 0,
-                                maxh: 0.2, valign: 'M', fitcell: true
-                            );
-                            $pdf->MultiCell(
-                                $paperWidth * 0.044, 0.2, '', 1, 'C', 0, 0,
-                                maxh: 0.2, valign: 'M', fitcell: true
-                            );
-                            $pdf->MultiCell(
-                                $paperWidth * 0.044, 0.2, '', 1, 'C', 0, 0,
-                                maxh: 0.2, valign: 'M', fitcell: true
-                            );
-                            $pdf->MultiCell(
-                                $paperWidth * 0.131, 0.2, number_format($totalDeposit, 2), 1, 'C', 0, 0,
-                                maxh: 0.2, valign: 'M', fitcell: true
-                            );
-                            $pdf->MultiCell(
-                                0, 0.2, number_format($totalUndeposit, 2), 1, 'C', 0, 1,
-                                maxh: 0.2, valign: 'M', fitcell: true
-                            );
+                            $htmlTable = '<table border="1" cellpadding="2"><tr>';
+                            $htmlTable .= '
+                                <td width="12%" align="center">' . date("m/d/Y", strtotime($date)) . '</td>
+                                <td width="9%" align="center">DEPOSIT</td>
+                                <td width="25%" align="left"></td>
+                                <td width="20%" align="center"></td>
+                                <td width="6.6%" align="center"></td>
+                                <td width="4.4%" align="center"></td>
+                                <td width="11%" align="center">' . number_format($totalDeposit, 2) . '</td>
+                                <td width="12%" align="center">' . number_format($totalUndeposit, 2) . '</td>
+                            ';
+                            $htmlTable .= '</tr></table>';
+
+                            $pdf->writeHTML($htmlTable, ln: false);
                         }
                     }
+
+                    $pdf->Ln(0.05);
+
+                    $dateFrom = date("F Y", strtotime($from));
+                    $dateTo = date("F Y", strtotime($to));
+                    $certDate = $dateFrom;
+
+                    if ($dateFrom === $dateTo) {
+                        $certDate = strtoupper($dateFrom);
+                    } else {
+                        $dateFromMonth = date("F", strtotime($from));
+                        $dateToMonth = date("F", strtotime($to));
+                        $dateFromYear = date("Y", strtotime($from));
+                        $dateToYear = date("Y", strtotime($to));
+
+                        if ($dateFromYear === $dateToYear) {
+                            $certDate = strtoupper("$dateFromMonth to $dateToMonth $dateFromYear");
+                        } else {
+                            $certDate = strtoupper("$dateFrom to $dateTo");
+                        }
+                    }
+
+                    $pdf->SetFont($this->fontArialBold, 'B', 12);
+                    $pdf->Cell(0, 0.3, 'C E R T I F I C A T I O N', 'LTR', 1, 'C');
+                    $pdf->Cell(0, 0.2, '', 'LR', 1, 'C');
+                    $pdf->SetFont('helvetica', '', 12);
+                    $pdf->MultiCell($paperWidth * 0.07, 1, '', 'L', 'L', 0, 0);
+                    $pdf->MultiCell($paperWidth * 0.86, 0.8,
+                        "          I hereby certify that the foregoing is a correct and complete record of all\n".
+                        "collections and deposits had by me in my capacity as Collecting Officer of Regional\n".
+                        "Finance Service Office 15 during the period from <strong>$certDate</strong> inclusives, as\n".
+                        "indicated in the corresponding columns.",
+                        0, 'L', 0, 0,
+                        ishtml: true
+                    );
+                    $pdf->MultiCell(0, 1, '', 'R', 'L', 0, 1);
+                    $pdf->SetFont($this->fontArialBold, 'B', 12);
+                    $pdf->Cell(0, 0.7, "$position->position_name $fullName                 ", 'LBR', 1, 'R');
+                    $pdf->Ln(0.7);
+
+                    $pdf->SetFont($this->fontArial, '', 12);
+                    $pdf->Cell($paperWidth * 0.04, 0, "", 0, 0, 'L');
+                    $pdf->Cell($paperWidth * 0.3, 0, "Certified Correct by:", 0, 1, 'L');
+                    $pdf->Ln(0.5);
+
+                    $pdf->SetFont($this->fontArialBold, 'BU', 12);
+                    $pdf->Cell($paperWidth * 0.04, 0, "", 0, 0, 'L');
+                    $pdf->Cell($paperWidth * 0.3, 0, "$certifiedCorrectPosition $certifiedCorrectName", 0, 1, 'L');
+                    $pdf->SetFont($this->fontArial, '', 12);
+                    $pdf->Cell($paperWidth * 0.04, 0, "", 0, 0, 'L');
+                    $pdf->Cell($paperWidth * 0.3, 0, $certifiedCorrectDesignation, 0, 1, 'L');
                 }
             }
         }
