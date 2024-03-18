@@ -24,7 +24,8 @@ class OfficialReceiptController extends Controller
             'payor:id,payor_name',
             'discount:id,discount_name,percent,requires_card_no',
             'accountablePersonnel:id,first_name,last_name',
-            'depositedBy:id,first_name,last_name'
+            'depositedBy:id,first_name,last_name',
+            'cancelledBy:id,first_name,last_name'
         ]);
 
         try {
@@ -172,14 +173,14 @@ class OfficialReceiptController extends Controller
     /**
      * Update the cancel status from storage.
      */
-    public function cancel(OfficialReceipt $officialReceipt)
+    public function cancel(Request $request, OfficialReceipt $officialReceipt)
     {
         // Update the official receipt
-        try {
             $officialReceipt->update([
                 'is_cancelled' => true,
-                'cancelled_date' => now()
-            ]);
+                'cancelled_date' => now(),
+                'cancelled_by_id' => $request->user()->id,
+            ]);try {
         } catch (\Throwable $th) {
             return response()->json([
                 'data' => [

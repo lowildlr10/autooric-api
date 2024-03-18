@@ -265,6 +265,7 @@ class PrintController extends Controller
                         $paperWidth * 0.11, 0.45, 'Deposit', 1, 'C', 1, 0,
                         maxh: 0.45, valign: 'M', fitcell: true
                     );
+                    $pdf->SetFont($this->fontArialBold, 'B', 9.5);
                     $pdf->MultiCell(
                         0, 0.45, 'Undeposited Collection', 1, 'C', 1, 0,
                         maxh: 0.45, valign: 'M', fitcell: true
@@ -322,7 +323,7 @@ class PrintController extends Controller
                             } else {
 
                                 $htmlTable .= '
-                                    <td width="23%" align="center">Cancelled</td>
+                                    <td width="23%" align="center">CANCELLED</td>
                                 ';
                             }
 

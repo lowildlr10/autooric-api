@@ -21,6 +21,10 @@ return new class extends Migration
             $table->foreign('deposited_by_id')
                 ->references('id')
                 ->on('users');
+            $table->uuid('cancelled_by_id')->nullable();
+            $table->foreign('cancelled_by_id')
+                ->references('id')
+                ->on('users');
             $table->date('receipt_date');
             $table->date('deposited_date')->nullable();
             $table->date('cancelled_date')->nullable();
