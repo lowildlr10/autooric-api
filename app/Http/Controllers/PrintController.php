@@ -191,7 +191,7 @@ class PrintController extends Controller
         $certifiedCorrectDesignation = $certifiedCorrect->designation;
 
         $docTitle = "Cash Receipt Record ($from to $to)";
-        $fileame = "cash_receipt_record_$from-$to.pdf";
+        $filename = "cash_receipt_record_$from-$to.pdf";
 
         // Initiate PDF and configs
         $pdf = new TCPDF('P', 'in', $dimension);
@@ -439,12 +439,12 @@ class PrintController extends Controller
             }
         }
 
-        $pdfBlob = $pdf->Output($fileame, 'S');
+        $pdfBlob = $pdf->Output($filename, 'S');
         $pdfBase64 = base64_encode($pdfBlob);
 
         return response()->json([
             'data' => [
-                'filename' => $fileame,
+                'filename' => $filename,
                 'pdf' => $pdfBase64,
                 'success' => 1
             ]
@@ -498,7 +498,7 @@ class PrintController extends Controller
         ];
 
         $docTitle = "Official Receipt ($officialReceipt->or_no)";
-        $fileame = "or-$officialReceipt->or_no.pdf";
+        $filename = "or-$officialReceipt->or_no.pdf";
 
         // Initiate PDF and configs
         $pdf = new TCPDF('P', 'in', $dimension);
@@ -595,14 +595,14 @@ class PrintController extends Controller
         $pdf->Cell(1.85, 0, '', 0, 0, 'L');
         $pdf->Cell(1.75, 0, $personnelName, 0, 1, 'C');
 
-        //$pdfBlob = $pdf->Output($fileame, 'I');
+        //$pdfBlob = $pdf->Output($filename, 'I');
 
-        $pdfBlob = $pdf->Output($fileame, 'S');
+        $pdfBlob = $pdf->Output($filename, 'S');
         $pdfBase64 = base64_encode($pdfBlob);
 
         return response()->json([
             'data' => [
-                'filename' => $fileame,
+                'filename' => $filename,
                 'pdf' => $pdfBase64,
                 'success' => 1
             ]
