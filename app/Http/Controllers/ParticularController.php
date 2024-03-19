@@ -143,8 +143,8 @@ class ParticularController extends Controller
         }
 
         try {
-            // Create a new particular
-            $particular = Particular::create([
+            // Update a new particular
+            $particular->update([
                 'category_id' => $category->id,
                 'particular_name' => $request->particular_name,
                 'default_amount' => $request->default_amount,
