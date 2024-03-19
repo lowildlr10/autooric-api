@@ -167,11 +167,9 @@ class PrintController extends Controller
     ) : JsonResponse
     {
         $dates = $this->generateDateRange($from, $to);
-
-        $categories = Category::with(['particulars'])
-            ->whereRelation('particulars', function($query) use($particularsIds) {
+        $categories = Category::with(['particulars' => function($query) use($particularsIds) {
                 $query->whereIn('id', $particularsIds);
-            })
+            }])
             ->orderBy('order_no')
             ->get();
 
@@ -286,7 +284,7 @@ class PrintController extends Controller
                             if ($orCounter === 1) {
                                 $orCounter = 0;
 
-                                if ($orKey !== count($officialReceipts) - 1) {
+                                if ($orKey !== count($officialReceipts)) {
                                     $pdf->AddPage();
                                 }
                             } else if ($orCounter === 0) {
@@ -321,10 +319,9 @@ class PrintController extends Controller
     ) : JsonResponse
     {
         $dates = $this->generateDateRange($from, $to);
-        $categories = Category::with(['particulars'])
-            ->whereRelation('particulars', function($query) use($particularsIds) {
+        $categories = Category::with(['particulars' => function($query) use($particularsIds) {
                 $query->whereIn('id', $particularsIds);
-            })
+            }])
             ->orderBy('order_no')
             ->get();
 
@@ -707,11 +704,15 @@ class PrintController extends Controller
         $pdf->Cell(1.75, 0, $personnelName, 0, 1, 'C');
 
         if ($isCancelled) {
+            $tangentValue = $h / $w;
+            $angleRadians = atan($tangentValue);
+            $angleDegrees = rad2deg($angleRadians);
+
             $pdf->SetXY($x + 0.3, $y + 6);
-            $pdf->SetTextColor(184, 123, 142);
+            $pdf->SetTextColor(119,119,119);
             $pdf->SetFont('helvetica', 'B', 65);
             $pdf->StartTransform();
-            $pdf->Rotate(63.01);
+            $pdf->Rotate($angleDegrees);
             $pdf->Cell($w, 0, 'CANCELLED');
             $pdf->StopTransform();
         }
