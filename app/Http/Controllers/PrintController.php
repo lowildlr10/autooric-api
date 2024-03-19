@@ -209,7 +209,10 @@ class PrintController extends Controller
                         'payor', 'natureCollection', 'discount'
                     ])
                     ->where('nature_collection_id', $particular->id)
-                    ->whereBetween('receipt_date', [$from, $to])
+                    ->where(function($query) use($dates) {
+                        $query->whereIn('deposited_date', $dates)
+                            ->orWhereIn('cancelled_date', $dates);
+                    })
                     ->count();
 
                 if ($orCount > 0) {
@@ -281,7 +284,10 @@ class PrintController extends Controller
                                 'payor', 'natureCollection', 'discount'
                             ])
                             ->where('nature_collection_id', $particular->id)
-                            ->where('created_at', 'LIKE', "%$date%")
+                            ->where(function($query) use($date) {
+                                $query->where('deposited_date', $date)
+                                    ->orWhere('cancelled_date', $date);
+                            })
                             ->orderBy('created_at')
                             ->get();
                         $totalDeposit = 0;
@@ -303,29 +309,56 @@ class PrintController extends Controller
 
                             $pdf->SetFont($this->fontArialNarrow, '', 11);
 
-                            $htmlTable = '<table border="1" cellpadding="2"><tr>';
-                            $htmlTable .= '
-                                <td width="12%" align="center">' . $receiptDate . '</td>
-                                <td width="9%" align="center">' . $orNo . '</td>
-                                <td width="25%" align="left">' . $payorName . '</td>
-                                <td width="20%" align="center">' . $natureCollection . '</td>
-                                <td width="6.6%" align="center">' . $collectionInt . '</td>
-                                <td width="4.4%" align="center">' . $collectionDec . '</td>
-                            ';
+                            $htmlFontColor = '#000';
 
                             if (!$isCancelled) {
-                                $htmlTable .= '
-                                    <td width="11%" align="center">' . $deposit . '</td>
-                                    <td width="12%" align="center">' . $undeposit . '</td>
-                                ';
                                 $totalDeposit += $or->deposit;
                                 $totalUndeposit += $or->amount - $or->deposit;
                             } else {
-
-                                $htmlTable .= '
-                                    <td width="23%" align="center">CANCELLED</td>
-                                ';
+                                $htmlFontColor = '#FF0000';
                             }
+
+                            $htmlTable = '<table border="1" cellpadding="2"><tr>';
+                            $htmlTable .= '
+                                <td
+                                    width="12%"
+                                    align="center"
+                                    style="'."color: $htmlFontColor".'"
+                                >' . $receiptDate . '</td>
+                                <td
+                                    width="9%"
+                                    align="center"
+                                    style="'."color: $htmlFontColor".'"
+                                >' . $orNo . '</td>
+                                <td
+                                    width="25%"
+                                    align="left"
+                                    style="'."color: $htmlFontColor".'"
+                                >' . (!$isCancelled ? $payorName : 'CANCELLED') . '</td>
+                                <td
+                                    width="20%"
+                                    align="center"
+                                    style="'."color: $htmlFontColor".'"
+                                >' . $natureCollection . '</td>
+                                <td
+                                    width="6.6%"
+                                    align="center"
+                                    style="'."color: $htmlFontColor".'"
+                                >' . (!$isCancelled ? $collectionInt : '00') . '</td>
+                                <td
+                                    width="4.4%"
+                                    align="center"
+                                    style="'."color: $htmlFontColor".'"
+                                >' . (!$isCancelled ? $collectionDec : '00') . '</td>
+                                <td
+                                    width="11%"
+                                    align="center"
+                                ></td>
+                                <td
+                                    width="12%"
+                                    align="center"
+                                ></td>
+                            ';
 
                             $htmlTable .= '</tr></table>';
 
@@ -344,7 +377,7 @@ class PrintController extends Controller
                                 <td width="6.6%" align="center"></td>
                                 <td width="4.4%" align="center"></td>
                                 <td width="11%" align="center">' . number_format($totalDeposit, 2) . '</td>
-                                <td width="12%" align="center">' . number_format($totalUndeposit, 2) . '</td>
+                                <td width="12%" align="center"></td>
                             ';
                             $htmlTable .= '</tr></table>';
 
