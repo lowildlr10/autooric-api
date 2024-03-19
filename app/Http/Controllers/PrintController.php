@@ -89,14 +89,12 @@ class PrintController extends Controller
                 $to = $request->to;
                 $particularsIds = json_decode($request->particulars_ids);
                 $paperSizeId = $request->paper_size_id;
-                 echo json_encode([
-                    'data' => [
-                        'filename' => $printType,
-                        'pdf' => $printType,
-                        'success' => 1
-                    ]
-                ], 201);
-                break;
+                return $this->printEReceipts(
+                    $from,
+                    $to,
+                    $particularsIds,
+                    $paperSizeId
+                );
 
             default:
                 return response()->json([
@@ -152,7 +150,169 @@ class PrintController extends Controller
         ];
     }
 
-    public function printCashReceiptsRecord(
+    private function getPaperDimensions($paperSizeId) : array
+    {
+        $paperSize = PaperSize::find($paperSizeId);
+        return [
+            (double) $paperSize->height,
+            (double) $paperSize->width
+        ];
+    }
+
+    private function printEReceipts(
+        $from,
+        $to,
+        $particularsIds = [],
+        $paperSizeId
+    ) : JsonResponse
+    {
+        $dates = $this->generateDateRange($from, $to);
+
+        $categories = Category::with(['particulars'])
+            ->whereRelation('particulars', function($query) use($particularsIds) {
+                $query->whereIn('id', $particularsIds);
+            })
+            ->orderBy('order_no')
+            ->get();
+
+        // Get the paper size
+        $dimension = $this->getPaperDimensions($paperSizeId);
+
+        // Get the OR paper size
+        $orPaperSize = PaperSize::where('paper_name', 'LIKE', '%receipt%')->first();
+        $orDimension = $this->getPaperDimensions($orPaperSize->id);
+
+        $docTitle = "E-Receipts ($from to $to)";
+        $filename = "e_receipts_$from".'_'."$to.pdf";
+
+        // Initiate PDF and configs
+        $pdf = new TCPDF('P', 'in', $dimension);
+        $pdf->SetCreator(PDF_CREATOR);
+        $pdf->SetAuthor(env('APP_NAME'));
+        $pdf->SetTitle($docTitle);
+        $pdf->SetSubject('E-Receipts');
+        $pdf->SetMargins(0, 0, 0);
+        $pdf->SetHeaderMargin(0);
+        $pdf->SetFooterMargin(0);
+        $pdf->SetAutoPageBreak(FALSE, 0);
+        $pdf->setPrintHeader(false);
+        $pdf->setPrintHeader(false);
+        $pdf->setPrintFooter(false);
+
+        foreach ($categories as $category) {
+            foreach ($category->particulars ?? [] as $particular) {
+                $orCount = OfficialReceipt::with([
+                        'payor', 'natureCollection', 'discount'
+                    ])
+                    ->where('nature_collection_id', $particular->id)
+                    ->where(function($query) use($dates) {
+                        $query->whereIn('deposited_date', $dates)
+                            ->orWhereIn('cancelled_date', $dates);
+                    })
+                    ->count();
+
+                if ($orCount > 0) {
+                    // Main content
+                    $pdf->AddPage();
+
+                    $paperWidth = $pdf->getPageWidth() - 0.8;
+
+                    foreach ($dates as $date) {
+                        $officialReceipts = OfficialReceipt::with([
+                                'payor', 'natureCollection', 'discount'
+                            ])
+                            ->where('nature_collection_id', $particular->id)
+                            ->where(function($query) use($date) {
+                                $query->where('deposited_date', $date)
+                                    ->orWhere('cancelled_date', $date);
+                            })
+                            ->orderBy('created_at')
+                            ->get();
+                        $orCounter = 0;
+
+                        foreach ($officialReceipts ?? [] as $orKey => $or) {
+                            $discount = Discount::find($or->discount_id);
+
+                            $orDate = date('m/d/Y', strtotime($or->receipt_date));
+                            $orNo = $or->or_no;
+                            $payorName = strtoupper($or->payor->payor_name);
+                            $discountName = $discount ? "\n\n\n$discount->discount_name\n$or->card_no" :
+                                '';
+                            $natureCollection = strtoupper(
+                                $or->natureCollection->particular_name .
+                                $discountName
+                            );
+                            $amount = number_format($or->amount, 2);
+                            $amountInWords = strtoupper($or->amount_words);
+                            $personnelName = strtoupper(
+                                $or->accountablePersonnel->first_name . ' ' .
+                                $or->accountablePersonnel->last_name
+                            );
+                            $paymentMode = strtolower($or->payment_mode);
+                            $draweeBank = strtoupper($or->drawee_bank);
+                            $checkNo = strtoupper($or->check_no);
+                            $checkDate = $or->check_date ?
+                                date('m/d/Y', strtotime($or->check_date)) : '';
+                            $isCancelled = !!$or->cancelled_date;
+
+                            $pdf->SetY($pdf->getPageHeight() * 0.077);
+
+                            if ($orCounter === 0) {
+                                $pdf->SetX(0.1);
+                            } else {
+                                $pdf->SetX(($pdf->getPageWidth() / 2));
+                            }
+
+                            $currentX = $pdf->GetX();
+                            $currentY = $pdf->GetY();
+
+                            $this->generateOfficialReceiptSegment(
+                                $pdf, $currentX, $currentY, $orDimension[1], $orDimension[0],
+                                hasTemplate: true,
+                                orDate: $orDate,
+                                orNo: $orNo,
+                                payorName: $payorName,
+                                natureCollection: $natureCollection,
+                                amount: $amount,
+                                amountInWords: $amountInWords,
+                                paymentMode: $paymentMode,
+                                draweeBank: $draweeBank,
+                                checkNo: $checkNo,
+                                checkDate: $checkDate,
+                                personnelName: $personnelName,
+                                isCancelled: $isCancelled
+                            );
+
+                            if ($orCounter === 1) {
+                                $orCounter = 0;
+
+                                if ($orKey !== count($officialReceipts) - 1) {
+                                    $pdf->AddPage();
+                                }
+                            } else if ($orCounter === 0) {
+                                $orCounter++;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        $pdfBlob = $pdf->Output($filename, 'S');
+        $pdfBase64 = base64_encode($pdfBlob);
+
+        return response()->json([
+            'data' => [
+                'filename' => $filename,
+                'pdf' => $pdfBase64,
+                'success' => 1
+            ]
+        ], 201)
+            ->header('Access-Control-Allow-Origin', '*')
+            ->header('Content-Type', 'application/json');
+    }
+
+    private function printCashReceiptsRecord(
         $from,
         $to,
         $particularsIds = [],
@@ -169,11 +329,7 @@ class PrintController extends Controller
             ->get();
 
         // Get the paper size
-        $paperSize = PaperSize::find($paperSizeId);
-        $dimension = [
-            (double) $paperSize->height,
-            (double) $paperSize->width
-        ];
+        $dimension = $this->getPaperDimensions($paperSizeId);
 
         // Get current user
         $firstName = auth()->user()->first_name;
@@ -191,15 +347,14 @@ class PrintController extends Controller
         $certifiedCorrectDesignation = $certifiedCorrect->designation;
 
         $docTitle = "Cash Receipt Record ($from to $to)";
-        $filename = "cash_receipt_record_$from-$to.pdf";
+        $filename = "cash_receipt_record_$from".'_'."$to.pdf";
 
         // Initiate PDF and configs
         $pdf = new TCPDF('P', 'in', $dimension);
         $pdf->SetCreator(PDF_CREATOR);
         $pdf->SetAuthor(env('APP_NAME'));
         $pdf->SetTitle($docTitle);
-        $pdf->SetSubject('Official Receipt');
-        $pdf->SetKeywords('OR, or, Official, Receipt, official, receipt');
+        $pdf->SetSubject('Cash Receipts Record');
         $pdf->SetMargins(0.4, 0.3, 0.4);
         $pdf->setPrintHeader(false);
 
@@ -385,7 +540,7 @@ class PrintController extends Controller
                         }
                     }
 
-                    $pdf->Ln(0.05);
+                    $pdf->Ln(0.1);
 
                     $dateFrom = date("F Y", strtotime($from));
                     $dateTo = date("F Y", strtotime($to));
@@ -453,7 +608,116 @@ class PrintController extends Controller
             ->header('Content-Type', 'application/json');
     }
 
-    public function printOfficialReceipt($orId, $paperSizeId, $hasTemplate = false) : JsonResponse
+    private function generateOfficialReceiptSegment(
+        TCPDF $pdf,
+        $x = 0,
+        $y = 0,
+        $w = 0,
+        $h = 0,
+        $hasTemplate,
+        $orDate,
+        $orNo,
+        $payorName,
+        $natureCollection,
+        $amount,
+        $amountInWords,
+        $paymentMode,
+        $draweeBank,
+        $checkNo,
+        $checkDate,
+        $personnelName,
+        $isCancelled = false
+    ) : void
+    {
+        if ($hasTemplate) {
+            $pdf->Image('images/or-template-2.jpg', $x, $y, $w, $h, 'JPEG');
+        }
+
+        $pdf->SetTextColor(50, 50, 50);
+        $pdf->SetFont('helvetica', 'B', 13);
+
+        // Generate a cell
+        $pdf->SetXY($x, $y + 1.77);
+        $pdf->Cell(1.6, 0, $orDate, 0, 0, 'R');
+        $pdf->Cell(0.5, 0, '', 0, 0, 'L');
+        $pdf->SetFont('helvetica', 'B', 18.5);
+        $pdf->SetTextColor(188,113,136);
+        $pdf->SetXY($x + 2.45, $y + 1.65);
+        $pdf->Cell(1.4, 0, $hasTemplate ? $orNo : '', 0, 1, 'L');
+
+        $pdf->SetTextColor(50, 50, 50);
+        $pdf->SetFont('helvetica', 'B', 12);
+
+        $pdf->SetXY($x+ 0.28, $y + 2.32);
+        $pdf->Cell(2.6, 0, $payorName, 0, 0, 'L');
+        $pdf->Cell(2, 0, '', 0, 1, 'R');
+
+        if (strlen($natureCollection) > 150) {
+            $pdf->setCellHeightRatio(1.63);
+            $pdf->SetFont('helvetica', 'B', 9);
+        } else {
+            $pdf->setCellHeightRatio(1.32);
+            $pdf->SetFont('helvetica', 'B', 11);
+        }
+
+        $pdf->SetXY($x + 0.25, $y + 2.96);
+        $pdf->MultiCell(1.6, 2.2, $natureCollection, 0, 'L', 0, 0);
+        $pdf->setCellHeightRatio(1.25);
+        $pdf->SetFont('helvetica', 'B', 11);
+        $pdf->MultiCell(2, 2.2, $amount, 0, 'R', 0, 1);
+
+        $pdf->SetXY($x + 0.25, $y + 5.18);
+        $pdf->Cell(1.6, 0, '', 0, 0, 'L');
+        $pdf->Cell(2, 0, $amount, 0, 1, 'R');
+
+        $pdf->SetFont('helvetica', 'B', strlen($amountInWords) >= 35 ? 8 : 11);
+
+        $pdf->SetXY($x + 0.25, $y + (strlen($amountInWords) >= 35 ? 5.6 : 5.64));
+        $pdf->MultiCell(3.6, 0, $amountInWords, 0, 'L', 0, 1);
+
+        $pdf->SetFont('zapfdingbats', '', 12);
+
+        switch ($paymentMode) {
+            case 'cash':
+                $pdf->SetXY($x + 0.3, $y + 6.02);
+                $pdf->Cell(1.6, 0, '4', 0, 1, 'L');
+                break;
+            case 'check':
+                $pdf->SetXY($x + 0.3, $y + 6.222);
+                $pdf->Cell(1.35, 0, '4', 0, 1, 'L');
+
+                $pdf->SetXY($x + 1.6, $y + 6.28);
+                $pdf->SetFont('helvetica', 'B', 8);
+                $pdf->MultiCell(0.73, 0, $draweeBank, 0, 'L', false, 0);
+                $pdf->MultiCell(0.75, 0, $checkNo, 0, 'L', false, 0);
+                $pdf->MultiCell(0.84, 0, $checkDate, 0, 'L');
+                break;
+            case 'money_order':
+                $pdf->SetXY($x + 0.3, $y + 6.422);
+                $pdf->Cell(1.6, 0, '4', 0, 1, 'L');
+                break;
+            default:
+                break;
+        }
+
+        $pdf->SetFont('helvetica', 'B', 9);
+
+        $pdf->SetXY($x + 0.25, $y + 7.19);
+        $pdf->Cell(1.85, 0, '', 0, 0, 'L');
+        $pdf->Cell(1.75, 0, $personnelName, 0, 1, 'C');
+
+        if ($isCancelled) {
+            $pdf->SetXY($x + 0.3, $y + 6);
+            $pdf->SetTextColor(184, 123, 142);
+            $pdf->SetFont('helvetica', 'B', 65);
+            $pdf->StartTransform();
+            $pdf->Rotate(63.01);
+            $pdf->Cell($w, 0, 'CANCELLED');
+            $pdf->StopTransform();
+        }
+    }
+
+    private function printOfficialReceipt($orId, $paperSizeId, $hasTemplate = false) : JsonResponse
     {
         $with = [
             'accountablePersonnel', 'payor', 'natureCollection', 'discount'
@@ -491,11 +755,7 @@ class PrintController extends Controller
             date('m/d/Y', strtotime($officialReceipt->check_date)) : '';
 
         // Get the paper size
-        $paperSize = PaperSize::find($paperSizeId);
-        $dimension = [
-            (double) $paperSize->height,
-            (double) $paperSize->width
-        ];
+        $dimension = $this->getPaperDimensions($paperSizeId);
 
         $docTitle = "Official Receipt ($officialReceipt->or_no)";
         $filename = "or-$officialReceipt->or_no.pdf";
@@ -518,82 +778,21 @@ class PrintController extends Controller
         // Main content
         $pdf->AddPage();
 
-        if ($hasTemplate) {
-            $pdf->Image('images/or-template-2.jpg', 0, 0, $dimension[1], $dimension[0], 'JPEG');
-        }
-
-        $pdf->SetTextColor(50, 50, 50);
-        $pdf->SetFont('helvetica', 'B', 13);
-
-        // Generate a cell
-        $pdf->SetXY(0.25, 1.77);
-        $pdf->Cell(1.6, 0, $orDate, 0, 0, 'R');
-        $pdf->Cell(0.5, 0, '', 0, 0, 'L');
-        $pdf->SetFont('helvetica', 'B', 18.5);
-        $pdf->SetTextColor(188,113,136);
-        $pdf->SetXY(2.45, 1.65);
-        $pdf->Cell(1.4, 0, $hasTemplate ? $orNo : '', 0, 1, 'L');
-
-        $pdf->SetTextColor(50, 50, 50);
-        $pdf->SetFont('helvetica', 'B', 12);
-
-        $pdf->SetXY(0.28, 2.32);
-        $pdf->Cell(2.6, 0, $payorName, 0, 0, 'L');
-        $pdf->Cell(2, 0, '', 0, 1, 'R');
-
-        if (strlen($natureCollection) > 150) {
-            $pdf->setCellHeightRatio(1.63);
-            $pdf->SetFont('helvetica', 'B', 9);
-        } else {
-            $pdf->setCellHeightRatio(1.32);
-            $pdf->SetFont('helvetica', 'B', 11);
-        }
-
-        $pdf->SetXY(0.25, 2.96);
-        $pdf->MultiCell(1.6, 2.2, $natureCollection, 0, 'L', 0, 0);
-        $pdf->setCellHeightRatio(1.25);
-        $pdf->SetFont('helvetica', 'B', 11);
-        $pdf->MultiCell(2, 2.2, $amount, 0, 'R', 0, 1);
-
-        $pdf->SetXY(0.25, 5.18);
-        $pdf->Cell(1.6, 0, '', 0, 0, 'L');
-        $pdf->Cell(2, 0, $amount, 0, 1, 'R');
-
-        $pdf->SetFont('helvetica', 'B', strlen($amountInWords) >= 35 ? 8 : 11);
-
-        $pdf->SetXY(0.25, strlen($amountInWords) >= 35 ? 5.6 : 5.64);
-        $pdf->MultiCell(3.6, 0, $amountInWords, 0, 'L', 0, 1);
-
-        $pdf->SetFont('zapfdingbats', '', 12);
-
-        switch ($paymentMode) {
-            case 'cash':
-                $pdf->SetXY(0.3, 6.02);
-                $pdf->Cell(1.6, 0, '4', 0, 1, 'L');
-                break;
-            case 'check':
-                $pdf->SetXY(0.3, 6.222);
-                $pdf->Cell(1.35, 0, '4', 0, 1, 'L');
-
-                $pdf->SetXY(1.6, 6.28);
-                $pdf->SetFont('helvetica', 'B', 8);
-                $pdf->MultiCell(0.73, 0, $draweeBank, 0, 'L', false, 0);
-                $pdf->MultiCell(0.75, 0, $checkNo, 0, 'L', false, 0);
-                $pdf->MultiCell(0.84, 0, $checkDate, 0, 'L');
-                break;
-            case 'money_order':
-                $pdf->SetXY(0.3, 6.422);
-                $pdf->Cell(1.6, 0, '4', 0, 1, 'L');
-                break;
-            default:
-                break;
-        }
-
-        $pdf->SetFont('helvetica', 'B', 9);
-
-        $pdf->SetXY(0.25, 7.19);
-        $pdf->Cell(1.85, 0, '', 0, 0, 'L');
-        $pdf->Cell(1.75, 0, $personnelName, 0, 1, 'C');
+        $this->generateOfficialReceiptSegment(
+            $pdf, 0, 0, $dimension[1], $dimension[0],
+            hasTemplate: $hasTemplate,
+            orDate: $orDate,
+            orNo: $orNo,
+            payorName: $payorName,
+            natureCollection: $natureCollection,
+            amount: $amount,
+            amountInWords: $amountInWords,
+            paymentMode: $paymentMode,
+            draweeBank: $draweeBank,
+            checkNo: $checkNo,
+            checkDate: $checkDate,
+            personnelName: $personnelName
+        );
 
         //$pdfBlob = $pdf->Output($filename, 'I');
 
