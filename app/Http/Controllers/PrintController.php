@@ -182,11 +182,11 @@ class PrintController extends Controller
         $position = Position::find(auth()->user()->position_id);
         $designation = Designation::find(auth()->user()->designation_id);
         $station = Station::find(auth()->user()->station_id);
-        $fullName = $middleName ? "$firstName $middleName $lastName" : "$firstName $lastName";
+        $fullName = strtoupper($middleName ? "$firstName $middleName $lastName" : "$firstName $lastName");
 
         // Get Certified Correct Signatory
         $certifiedCorrect = $this->getSignatory($certifiedCorrectId, 'crr_certified_correct');
-        $certifiedCorrectName = $certifiedCorrect->signatory_name;
+        $certifiedCorrectName = strtoupper($certifiedCorrect->signatory_name);
         $certifiedCorrectPosition = $certifiedCorrect->position;
         $certifiedCorrectDesignation = $certifiedCorrect->designation;
 
