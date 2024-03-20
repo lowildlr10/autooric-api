@@ -452,7 +452,7 @@ class PrintController extends Controller
                             $receiptDate = date("m/d/Y", strtotime($or->receipt_date));
                             $isCancelled = !!$or->cancelled_date;
                             $payorName = strtoupper($or->payor->payor_name);
-                            $natureCollection = $or->natureCollection->particular_name;
+                            $natureCollection = strtoupper($or->natureCollection->particular_name);
                             $collection = explode('.', number_format(($or->amount ?? 0), 2));
                             $collectionInt = $collection[0];
                             $collectionDec = $collection[1];
@@ -704,17 +704,10 @@ class PrintController extends Controller
         $pdf->Cell(1.75, 0, $personnelName, 0, 1, 'C');
 
         if ($isCancelled) {
-            $tangentValue = $h / $w;
-            $angleRadians = atan($tangentValue);
-            $angleDegrees = rad2deg($angleRadians);
-
-            $pdf->SetXY($x + 0.3, $y + 6);
-            $pdf->SetTextColor(119,119,119);
-            $pdf->SetFont('helvetica', 'B', 65);
-            $pdf->StartTransform();
-            $pdf->Rotate($angleDegrees);
+            $pdf->SetXY($x + ($w * 0.123), ($y + $h * 0.47));
+            $pdf->SetTextColor(255,109,109);
+            $pdf->SetFont('helvetica', 'B', ($w * 8.66));
             $pdf->Cell($w, 0, 'CANCELLED');
-            $pdf->StopTransform();
         }
     }
 
