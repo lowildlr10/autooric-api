@@ -61,14 +61,14 @@ class PrintController extends Controller
                 $certifiedCorrectId = $request->certified_correct_id;
                 $notedById = $request->noted_by_id;
                 $paperSizeId = $request->paper_size_id;
-                 echo json_encode([
-                    'data' => [
-                        'filename' => $printType,
-                        'pdf' => $printType,
-                        'success' => 1
-                    ]
-                ], 201);
-                break;
+                return $this->printReportCollection(
+                    $from,
+                    $to,
+                    $categoryIds,
+                    $certifiedCorrectId,
+                    $notedById,
+                    $paperSizeId
+                );
 
             case 'summary-fees':
                 $from = $request->from;
@@ -143,11 +143,58 @@ class PrintController extends Controller
         }
 
         return (Object) [
-            'signatory_name' => $signatory->signatory_name,
-            'position' => $position,
-            'designation' => $designation,
-            'station' => $station
+            'signatory_name' => ucwords(strtolower($signatory->signatory_name)),
+            'position' => ucwords(strtolower($position)),
+            'designation' => ucwords(strtolower($designation)),
+            'station' => ucwords(strtolower($station))
         ];
+    }
+
+    private function getCurrentUser() : Object
+    {
+        $firstName = ucwords(strtolower(auth()->user()->first_name));
+        $middleName = ucwords(
+            strtolower(auth()->user()->middle_name ? auth()->user()->middle_name[0].'.' : ''
+        ));
+        $lastName = ucwords(strtolower(auth()->user()->last_name));
+        $position = Position::find(auth()->user()->position_id);
+        $positionName = ucwords(strtolower($position->position_name));
+        $designation = Designation::find(auth()->user()->designation_id);
+        $desinationName = ucwords(strtolower($designation->designation_name));
+        $station = Station::find(auth()->user()->station_id);
+        $stationName = ucwords(strtolower($station->station_name));
+        $fullName = $middleName ? "$firstName $middleName $lastName" : "$firstName $lastName";
+
+        return (Object) [
+            'name' => $fullName,
+            'position' => $positionName,
+            'designation' => $desinationName,
+            'station' => $stationName
+        ];
+    }
+
+    private function getCertDateRange($from, $to) : string
+    {
+        $dateFrom = date("F Y", strtotime($from));
+        $dateTo = date("F Y", strtotime($to));
+        $certDate = $dateFrom;
+
+        if ($dateFrom === $dateTo) {
+            $certDate = strtoupper($dateFrom);
+        } else {
+            $dateFromMonth = date("F", strtotime($from));
+            $dateToMonth = date("F", strtotime($to));
+            $dateFromYear = date("Y", strtotime($from));
+            $dateToYear = date("Y", strtotime($to));
+
+            if ($dateFromYear === $dateToYear) {
+                $certDate = strtoupper("$dateFromMonth to $dateToMonth $dateFromYear");
+            } else {
+                $certDate = strtoupper("$dateFrom to $dateTo");
+            }
+        }
+
+        return $certDate;
     }
 
     private function getPaperDimensions($paperSizeId) : array
@@ -310,6 +357,43 @@ class PrintController extends Controller
             ->header('Content-Type', 'application/json');
     }
 
+    private function printReportCollection(
+        $from,
+        $to,
+        $categoryIds = [],
+        $certifiedCorrectId,
+        $notedById,
+        $paperSizeId
+    ) : JsonResponse
+    {
+        $dates = $this->generateDateRange($from, $to);
+        $categories = Category::with(['particulars' => function($query) use($particularsIds) {
+                $query->whereIn('id', $particularsIds);
+            }])
+            ->orderBy('order_no')
+            ->get();
+
+        // Get the paper size
+        $dimension = $this->getPaperDimensions($paperSizeId);
+
+
+
+
+
+        // $pdfBlob = $pdf->Output($filename, 'S');
+        // $pdfBase64 = base64_encode($pdfBlob);
+
+        return response()->json([
+            'data' => [
+                'filename' => '$filename',
+                'pdf' => '$pdfBase64',
+                'success' => 1
+            ]
+        ], 201)
+            ->header('Access-Control-Allow-Origin', '*')
+            ->header('Content-Type', 'application/json');
+    }
+
     private function printCashReceiptsRecord(
         $from,
         $to,
@@ -329,18 +413,16 @@ class PrintController extends Controller
         $dimension = $this->getPaperDimensions($paperSizeId);
 
         // Get current user
-        $firstName = auth()->user()->first_name;
-        $middleName = auth()->user()->middle_name ? auth()->user()->middle_name[0].'.' : '';
-        $lastName = auth()->user()->last_name;
-        $position = Position::find(auth()->user()->position_id);
-        $designation = Designation::find(auth()->user()->designation_id);
-        $station = Station::find(auth()->user()->station_id);
-        $fullName = strtoupper($middleName ? "$firstName $middleName $lastName" : "$firstName $lastName");
+        $user = $this->getCurrentUser();
+        $position = strtoupper($user->position);
+        $designation = strtoupper($user->designation);
+        $station = strtoupper($user->station);
+        $fullName = $user->name;
 
         // Get Certified Correct Signatory
         $certifiedCorrect = $this->getSignatory($certifiedCorrectId, 'crr_certified_correct');
         $certifiedCorrectName = strtoupper($certifiedCorrect->signatory_name);
-        $certifiedCorrectPosition = $certifiedCorrect->position;
+        $certifiedCorrectPosition = strtoupper($certifiedCorrect->position);
         $certifiedCorrectDesignation = $certifiedCorrect->designation;
 
         $docTitle = "Cash Receipt Record ($from to $to)";
@@ -352,8 +434,10 @@ class PrintController extends Controller
         $pdf->SetAuthor(env('APP_NAME'));
         $pdf->SetTitle($docTitle);
         $pdf->SetSubject('Cash Receipts Record');
-        $pdf->SetMargins(0.4, 0.3, 0.4);
+        $pdf->SetMargins(0.4, 0.7, 0.4);
         $pdf->setPrintHeader(false);
+        $pdf->setPrintFooter(false);
+        $pdf->SetAutoPageBreak(TRUE, 0.4);
 
         foreach ($categories as $category) {
             foreach ($category->particulars ?? [] as $particular) {
@@ -373,21 +457,29 @@ class PrintController extends Controller
 
                     $paperWidth = $pdf->getPageWidth() - 0.8;
 
+                    $pdf->setCellHeightRatio(0.7);
+                    $pdf->Cell(0, 0, '', 'LTR', 1, 'C');
+                    $pdf->setCellHeightRatio(1.25);
                     $pdf->SetFont($this->fontArialBold, 'B', 16);
-                    $pdf->Cell(0, 0.7, 'CASH RECEIPT RECORD', 0, 1, 'C');
+                    $pdf->Cell(0, 0, 'CASH RECEIPT RECORD', 'LR', 1, 'C');
 
                     $pdf->SetFont($this->fontArial, '', 14);
-                    $pdf->Cell(0, 0, 'REGIONAL FINANCE SERVICE OFFICE 15', 0, 1, 'C');
-                    $pdf->Ln();
+                    $pdf->Cell(0, 0, '', 'LR', 1, 'C');
+                    $pdf->Cell(0, 0, 'REGIONAL FINANCE SERVICE OFFICE 15', 'LR', 1, 'C');
+                    $pdf->setCellHeightRatio(0.2);
+                    $pdf->Cell(0, 0, '', 'LR', 1, 'C');
+                    $pdf->setCellHeightRatio(1.25);
 
                     $pdf->SetFont($this->fontArial, '', 10);
-                    $pdf->Cell(0, 0, 'Page 1', 0, 1, 'R');
-                    $pdf->Ln(0.05);
+                    $pdf->Cell(0, 0, 'Page 1', 'LR', 1, 'R');
+                    $pdf->setCellHeightRatio(0.3);
+                    $pdf->Cell(0, 0, '', 'LR', 1, 'C');
+                    $pdf->setCellHeightRatio(1.25);
 
                     $pdf->SetFont($this->fontArialBold, 'B', 10);
-                    $pdf->Cell($paperWidth * 0.46, 0, "$position->position_name $fullName", 1, 0, 'C');
-                    $pdf->Cell($paperWidth * 0.31, 0, strtoupper($designation->designation_name), 1, 0, 'C');
-                    $pdf->Cell(0, 0, strtoupper($station->station_name), 1, 1, 'C');
+                    $pdf->Cell($paperWidth * 0.46, 0, "$position $fullName", 1, 0, 'C');
+                    $pdf->Cell($paperWidth * 0.31, 0, $designation, 1, 0, 'C');
+                    $pdf->Cell(0, 0, $station, 1, 1, 'C');
 
                     $pdf->SetFont($this->fontArial, 'I', 10);
                     $pdf->Cell($paperWidth * 0.46, 0, 'Accountable Personnel', 1, 0, 'C');
@@ -539,24 +631,7 @@ class PrintController extends Controller
 
                     $pdf->Ln(0.1);
 
-                    $dateFrom = date("F Y", strtotime($from));
-                    $dateTo = date("F Y", strtotime($to));
-                    $certDate = $dateFrom;
-
-                    if ($dateFrom === $dateTo) {
-                        $certDate = strtoupper($dateFrom);
-                    } else {
-                        $dateFromMonth = date("F", strtotime($from));
-                        $dateToMonth = date("F", strtotime($to));
-                        $dateFromYear = date("Y", strtotime($from));
-                        $dateToYear = date("Y", strtotime($to));
-
-                        if ($dateFromYear === $dateToYear) {
-                            $certDate = strtoupper("$dateFromMonth to $dateToMonth $dateFromYear");
-                        } else {
-                            $certDate = strtoupper("$dateFrom to $dateTo");
-                        }
-                    }
+                    $certDate = $this->getCertDateRange($from, $to);
 
                     $pdf->SetFont($this->fontArialBold, 'B', 12);
                     $pdf->Cell(0, 0.3, 'C E R T I F I C A T I O N', 'LTR', 1, 'C');
@@ -573,7 +648,7 @@ class PrintController extends Controller
                     );
                     $pdf->MultiCell(0, 1, '', 'R', 'L', 0, 1);
                     $pdf->SetFont($this->fontArialBold, 'B', 12);
-                    $pdf->Cell(0, 0.7, "$position->position_name $fullName                 ", 'LBR', 1, 'R');
+                    $pdf->Cell(0, 0.7, strtoupper("$position $fullName              "), 'LBR', 1, 'R');
                     $pdf->Ln(0.7);
 
                     $pdf->SetFont($this->fontArial, '', 12);
