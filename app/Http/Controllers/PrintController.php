@@ -547,15 +547,15 @@ class PrintController extends Controller
         $paperWidth = $pdf->getPageWidth();
         $paperWidthWithMargin = $pdf->getPageWidth() - 0.8;
 
-        $pdf->Image('images/pnp-logo.png', $paperWidth * 0.193, 0.66, 0.55, 0.8, 'PNG');
-        $pdf->Image('images/pnp-finance-logo.png', $paperWidth * 0.735, 0.66, 0.8, 0.8, 'PNG');
-        $pdf->SetFont($this->fontArial, '', 9);
+        $pdf->Image('images/pnp-logo.png', $paperWidth * 0.193, 0.72, 0.55, 0.8, 'PNG');
+        $pdf->Image('images/pnp-finance-logo.png', $paperWidth * 0.735, 0.72, 0.8, 0.8, 'PNG');
+        $pdf->SetFont($this->fontArial, '', 10);
         $pdf->Cell(0, 0, 'Republic of the Philippines', 0, 1, 'C');
         $pdf->Cell(0, 0, 'NATIONAL POLICE COMMISSION', 0, 1, 'C');
-        $pdf->SetFont($this->fontArialBold, 'B', 9);
+        $pdf->SetFont($this->fontArialBold, 'B', 10);
         $pdf->Cell(0, 0, 'PHILIPPINE NATIONAL POLICE, FINANCE SERVICE', 0, 1, 'C');
         $pdf->Cell(0, 0, 'REGIONAL FINANCE SERVICE OFFICE 15', 0, 1, 'C');
-        $pdf->SetFont($this->fontArial, '', 9);
+        $pdf->SetFont($this->fontArial, '', 10);
         $pdf->Cell(0, 0, 'Camp Bado Dangwa, La Trinidad, Benguet', 0, 1, 'C');
         $pdf->Ln(0.3);
 
@@ -689,7 +689,7 @@ class PrintController extends Controller
             ></td>
         </tr></table>';
 
-        $pdf->SetFont($this->fontArialBold, 'B', 13);
+        $pdf->SetFont($this->fontArialBold, 'B', 12);
         $pdf->writeHTML($htmlTable, ln: false);
 
         $pdf->Ln(0.4);
