@@ -71,24 +71,57 @@ class PrintController extends Controller
                 );
 
             case 'report-collection':
+                $template = $request->template;
                 $printData = $request->print_data;
-                return $this->printReportCollection(
-                    $printData
-                );
 
-            case 'summary-fees':
                 $from = $request->from;
                 $to = $request->to;
                 $categoryIds = json_decode($request->category_ids);
+                $certifiedCorrectId = $request->certified_correct_id;
+                $notedById = $request->noted_by_id;
                 $paperSizeId = $request->paper_size_id;
-                 echo json_encode([
+
+
+
+                if ($template === 'coa_accounting') {
+
+                } else if ($template === 'pnp_crame') {
+                    return $this->printReportCollectionCrame(
+                        $printData
+                    );
+                } else if ($template === 'firearms_registration') {
+
+                }
+                break;
+
+            case 'summary-fees':
+                // Fetch the PDF file content
+                $pdfContent = file_get_contents(url('/docs/complete_kinds_fees.pdf'));
+
+                if ($pdfContent === false) {
+                    return response()->json([
+                        'data' => [
+                            'message' => 'Failed to fetch PDF file.',
+                            'error' => 1
+                        ]
+                    ], 422)
+                        ->header('Access-Control-Allow-Origin', '*')
+                        ->header('Content-Type', 'application/json');
+                    exit;
+                }
+
+                // Convert the PDF content to Base64
+                $pdfBase64 = base64_encode($pdfContent);
+
+                return response()->json([
                     'data' => [
-                        'filename' => $printType,
-                        'pdf' => $printType,
+                        'filename' => 'Kinds of Fees',
+                        'pdf' => $pdfBase64,
                         'success' => 1
                     ]
-                ], 201);
-                break;
+                ], 201)
+                    ->header('Access-Control-Allow-Origin', '*')
+                    ->header('Content-Type', 'application/json');
 
             case 'e-receipts':
                 $from = $request->from;
@@ -394,7 +427,7 @@ class PrintController extends Controller
         $position = strtoupper($user->position);
         $designation = $user->designation;
         $station = strtoupper($user->station);
-        $fullName = strtoupper($user->name);
+        $fullName = $user->name;
 
         $data['user_name'] = $fullName;
         $data['user_position'] = $position;
@@ -451,18 +484,18 @@ class PrintController extends Controller
                 foreach ($category->particulars ?? [] as $parKey => $particular) {
                     $orCount = OfficialReceipt::where('nature_collection_id', $particular->id)
                         ->where(function($query) use($dates) {
-                            $query->whereIn('deposited_date', $dates);
-                                //->orWhereIn('cancelled_date', $dates);
+                            $query->whereIn('deposited_date', $dates)
+                                  ->orWhereIn('cancelled_date', $dates);
                         })
                         ->count();
                     $orAmountSum = OfficialReceipt::where('nature_collection_id', $particular->id)
                         ->where(function($query) use($dates) {
-                            $query->whereIn('deposited_date', $dates);
-                                //->orWhereIn('cancelled_date', $dates);
+                            $query->whereIn('deposited_date', $dates)
+                                  ->orWhereIn('cancelled_date', $dates);
                         })
                         ->sum('amount');
 
-                    if ($orCount > 0) {
+                    if ($orCount > 0 && $particular->pnp_crame) {
                         $particularName = $particular->particular_name;
                         $totalAmount += $orAmountSum;
                         $orCountTotal += $orCount;
@@ -498,7 +531,7 @@ class PrintController extends Controller
             ->header('Content-Type', 'application/json');
     }
 
-    private function printReportCollection(
+    private function printReportCollectionCrame(
         $printData
     ) : JsonResponse
     {

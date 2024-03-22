@@ -90,7 +90,10 @@ class ParticularController extends Controller
                 'particular_name' => $request->particular_name,
                 'default_amount' => $request->default_amount,
                 'order_no' => Particular::where('category_id', $category->id)
-                    ->count()
+                    ->count(),
+                'coa_accounting' => $request->coa_accounting,
+                'pnp_crame' => $request->pnp_crame,
+                'firearms_registration' => $request->firearms_registration
             ]);
         } catch (\Throwable $th) {
             return response()->json([
@@ -149,6 +152,9 @@ class ParticularController extends Controller
                 'particular_name' => $request->particular_name,
                 'default_amount' => $request->default_amount,
                 'order_no' => $request->order_no,
+                'coa_accounting' => $request->coa_accounting,
+                'pnp_crame' => $request->pnp_crame,
+                'firearms_registration' => $request->firearms_registration
             ]);
         } catch (\Throwable $th) {
             return response()->json([

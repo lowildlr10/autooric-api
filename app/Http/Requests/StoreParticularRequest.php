@@ -26,7 +26,10 @@ class StoreParticularRequest extends FormRequest
             // Validate the request
             'particular_name' => 'required',
             'category_id' => 'required',
-            'default_amount' => 'nullable'
+            'default_amount' => 'nullable',
+            'coa_accounting' => 'boolean',
+            'pnp_crame' => 'boolean',
+            'firearms_registration' => 'boolean'
         ];
     }
 

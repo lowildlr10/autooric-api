@@ -20,6 +20,9 @@ return new class extends Migration
             $table->string('particular_name');
             $table->double('default_amount', 20, 2)->nullable();
             $table->integer('order_no')->unsigned();
+            $table->boolean('coa_accounting')->default(false);
+            $table->boolean('pnp_crame')->default(false);
+            $table->boolean('firearms_registration')->default(false);
             $table->timestamps();
         });
     }

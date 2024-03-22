@@ -27,7 +27,10 @@ class UpdateParticularRequest extends FormRequest
             'particular_name' => 'required',
             'category_id' => 'required',
             'default_amount' => 'nullable',
-            'order_no' => 'required|numeric'
+            'order_no' => 'required|numeric',
+            'coa_accounting' => 'boolean',
+            'pnp_crame' => 'boolean',
+            'firearms_registration' => 'boolean'
         ];
     }
 }

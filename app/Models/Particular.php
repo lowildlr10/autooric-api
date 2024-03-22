@@ -17,7 +17,10 @@ class Particular extends Model
         'particular_name',
         'category_id',
         'default_amount',
-        'order_no'
+        'order_no',
+        'coa_accounting',
+        'pnp_crame',
+        'firearms_registration'
     ];
 
     protected $hidden = [
