@@ -557,7 +557,7 @@ class PrintController extends Controller
 
             $pdf->writeHTML($htmlTable, ln: false);
 
-            $tableFooterColor = $tableHeaderColor;
+            $tableFooterColor = '#e3eeda';
             $htmlTable = '<table border="1" cellpadding="2"><tr>
                 <td
                     width="15%"
@@ -590,7 +590,7 @@ class PrintController extends Controller
             $pdf->writeHTML($htmlTable, ln: false);
         }
 
-        $tableFooterColor = $tableHeaderColor;
+        $tableFooterColor = '#e3eeda';
         $htmlTable = '<table border="1" cellpadding="2"><tr>
             <td
                 width="57.7%"
