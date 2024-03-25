@@ -471,9 +471,8 @@ class PrintController extends Controller
         $pdf->Ln(0.2);
 
         foreach ($categories as $catKey => $category) {
-            $totalAmount = 0;
-            $totalTransaction = 0;
-            $orCountTotal = 0;
+            $totalAmount = !empty($category->total_amount) ? $category->total_amount : '-';
+            $orCountTotal = !empty($category->or_count_total) ? $category->or_count_total : 0;
 
             $pdf->SetFont($this->fontArialNarrowBold, 'B', 12);
             $pdf->Cell(0, 0, strtoupper($category->category_name), $catKey === 0 ? 0 : 'LR', 1, 'L');
@@ -520,9 +519,6 @@ class PrintController extends Controller
                 $orCount = $particular->or_count;
                 $orAmountPerTrans = $particular->amount_per_transaction;
                 $orAmountSum = $particular->amount_sum;
-                $totalTransaction += $particular->or_count;
-                $totalAmount += $particular->amount_sum;
-                $orCountTotal += $particular->or_count;
 
                 $htmlTable .= '<tr>';
                 $htmlTable .= '
@@ -578,77 +574,79 @@ class PrintController extends Controller
                     width="13.6%"
                     align="center"
                     style="'."background-color: $tableFooterColor".'"
-                >'.$totalTransaction.'</td>
+                >'.$orCountTotal.'</td>
                 <td
                     width="28.7%"
                     align="right"
                     style="'."background-color: $tableFooterColor".'"
-                >'.($totalAmount ? number_format($totalAmount, 2) : '-').'</td>
+                >'.$totalAmount.'</td>
             </tr></table>';
 
             $pdf->SetFont($this->fontArialNarrowBold, 'B', 16);
             $pdf->writeHTML($htmlTable, ln: false);
         }
 
-        $tableFooterColor = '#e3eeda';
-        $htmlTable = '<table border="1" cellpadding="2"><tr>
-            <td
-                width="57.7%"
-                align="left"
-                style="'."background-color: $tableFooterColor".'"
-            >GRAND TOTAL</td>
-            <td
-                width="13.6%"
-                align="center"
-                style="'."background-color: $tableFooterColor".'"
-            >'.$grandOrCountTotal.'</td>
-            <td
-                width="28.7%"
-                align="right"
-                style="'."background-color: $tableFooterColor".'"
-            >'.$grandTotalAmount.'</td>
-        </tr></table>';
+        if (count($categories) > 0) {
+            $tableFooterColor = '#e3eeda';
+            $htmlTable = '<table border="1" cellpadding="2"><tr>
+                <td
+                    width="57.7%"
+                    align="left"
+                    style="'."background-color: $tableFooterColor".'"
+                >GRAND TOTAL</td>
+                <td
+                    width="13.6%"
+                    align="center"
+                    style="'."background-color: $tableFooterColor".'"
+                >'.$grandOrCountTotal.'</td>
+                <td
+                    width="28.7%"
+                    align="right"
+                    style="'."background-color: $tableFooterColor".'"
+                >'.$grandTotalAmount.'</td>
+            </tr></table>';
 
-        $pdf->SetFont($this->fontArialNarrowBold, 'B', 16);
-        $pdf->writeHTML($htmlTable, ln: false);
+            $pdf->SetFont($this->fontArialNarrowBold, 'B', 16);
+            $pdf->writeHTML($htmlTable, ln: false);
 
-        $pdf->Ln(0.4);
+            $pdf->Ln(0.4);
 
-        $pdf->SetFont($this->fontArial, '', 12);
-        $pdf->Cell($paperWidthWithMargin / 3, 0, 'Prepared by:', 0, 0, 'L');
-        $pdf->Cell($paperWidthWithMargin / 3.5, 0, '', 0, 0, 'L');
-        $pdf->Cell(0, 0, 'Certified Correct:', 0, 1, 'L');
-        $pdf->Ln(0.3);
+            $pdf->SetFont($this->fontArial, '', 12);
+            $pdf->Cell($paperWidthWithMargin / 3, 0, 'Prepared by:', 0, 0, 'L');
+            $pdf->Cell($paperWidthWithMargin / 3.5, 0, '', 0, 0, 'L');
+            $pdf->Cell(0, 0, 'Certified Correct:', 0, 1, 'L');
+            $pdf->Ln(0.3);
 
-        $pdf->SetFont($this->fontArialBold, 'BU', 12);
-        $pdf->Cell($paperWidthWithMargin / 3, 0, "$position $fullName", 0, 0, 'L');
-        $pdf->Cell($paperWidthWithMargin / 3.5, 0, '', 0, 0, 'L');
-        $pdf->Cell(0, 0, "$certifiedCorrectPosition $certifiedCorrectName", 0, 1, 'L');
+            $pdf->SetFont($this->fontArialBold, 'BU', 12);
+            $pdf->Cell($paperWidthWithMargin / 3, 0, "$position $fullName", 0, 0, 'L');
+            $pdf->Cell($paperWidthWithMargin / 3.5, 0, '', 0, 0, 'L');
+            $pdf->Cell(0, 0, "$certifiedCorrectPosition $certifiedCorrectName", 0, 1, 'L');
 
-        $pdf->SetFont($this->fontArial, '', 12);
-        $pdf->Cell($paperWidthWithMargin / 3, 0, $designation, 0, 0, 'L');
-        $pdf->Cell($paperWidthWithMargin / 3.5, 0, '', 0, 0, 'L');
-        $pdf->Cell(0, 0, $certifiedCorrectDesignation, 0, 1, 'L');
+            $pdf->SetFont($this->fontArial, '', 12);
+            $pdf->Cell($paperWidthWithMargin / 3, 0, $designation, 0, 0, 'L');
+            $pdf->Cell($paperWidthWithMargin / 3.5, 0, '', 0, 0, 'L');
+            $pdf->Cell(0, 0, $certifiedCorrectDesignation, 0, 1, 'L');
 
-        $pdf->Ln(0.5);
+            $pdf->Ln(0.5);
 
-        $pdf->Cell($paperWidthWithMargin / 3, 0, '', 0, 0, 'L');
-        $pdf->Cell($paperWidthWithMargin / 3, 0, 'Noted by:', 0, 0, 'L');
-        $pdf->Cell(0, 0, '', 0, 1, 'L');
-        $pdf->Ln(0.3);
+            $pdf->Cell($paperWidthWithMargin / 3, 0, '', 0, 0, 'L');
+            $pdf->Cell($paperWidthWithMargin / 3, 0, 'Noted by:', 0, 0, 'L');
+            $pdf->Cell(0, 0, '', 0, 1, 'L');
+            $pdf->Ln(0.3);
 
-        $pdf->SetFont($this->fontArialBold, 'BU', 12);
-        $pdf->Cell($paperWidthWithMargin / 3, 0, '', 0, 0, 'L');
-        $pdf->Cell($paperWidthWithMargin / 3, 0, "$notedByPosition $notedByName", 0, 0, 'L');
-        $pdf->Cell(0, 0, '', 0, 1, 'L');
+            $pdf->SetFont($this->fontArialBold, 'BU', 12);
+            $pdf->Cell($paperWidthWithMargin / 3, 0, '', 0, 0, 'L');
+            $pdf->Cell($paperWidthWithMargin / 3, 0, "$notedByPosition $notedByName", 0, 0, 'L');
+            $pdf->Cell(0, 0, '', 0, 1, 'L');
 
-        $pdf->SetFont($this->fontArial, '', 12);
-        $pdf->Cell($paperWidthWithMargin / 3, 0, '', 0, 0, 'L');
-        $pdf->Cell(
-            $paperWidthWithMargin / 3, 0,
-            $notedByStation ? "$notedByDesignation, $notedByStation" : $notedByDesignation,
-            0, 0, 'L');
-        $pdf->Cell(0, 0, '', 0, 1, 'L');
+            $pdf->SetFont($this->fontArial, '', 12);
+            $pdf->Cell($paperWidthWithMargin / 3, 0, '', 0, 0, 'L');
+            $pdf->Cell(
+                $paperWidthWithMargin / 3, 0,
+                $notedByStation ? "$notedByDesignation, $notedByStation" : $notedByDesignation,
+                0, 0, 'L');
+            $pdf->Cell(0, 0, '', 0, 1, 'L');
+        }
 
         $pdfBlob = $pdf->Output($filename, 'S');
         $pdfBase64 = base64_encode($pdfBlob);
@@ -912,8 +910,8 @@ class PrintController extends Controller
         $pdf->Ln(0.2);
 
         foreach ($categories as $catKey => $category) {
-            $totalAmount = 0;
-            $orCountTotal = 0;
+            $totalAmount = !empty($category->total_amount) ? $category->total_amount : '-';
+            $orCountTotal = !empty($category->or_count_total) ? $category->or_count_total : '0';
 
             $pdf->SetFont($this->fontArialBold, 'B', 12);
             $pdf->Cell(0, 0, strtoupper($category->category_name), 0, 1, 'L');
@@ -953,8 +951,6 @@ class PrintController extends Controller
                 $orCount = $particular->or_count;
                 $orAmountSum = $particular->amount_sum;
                 $remarks = $particular->remarks;
-                $totalAmount += $particular->amount_sum;
-                $orCountTotal += $particular->or_count;
 
                 $htmlTable .= '<tr>';
                 $htmlTable .= '
@@ -997,7 +993,7 @@ class PrintController extends Controller
                     width="18%"
                     align="right"
                     style="'."background-color: $tableFooterColor".'"
-                >'.($totalAmount ? number_format($totalAmount, 2) : '-').'</td>
+                >'.$totalAmount.'</td>
                 <td
                     width="18%"
                     align="center"
@@ -1009,70 +1005,72 @@ class PrintController extends Controller
             $pdf->writeHTML($htmlTable, ln: false);
         }
 
-        $tableFooterColor = '#feff01';
-        $htmlTable = '<table border="1" cellpadding="2"><tr>
-            <td
-                width="43.4%"
-                align="left"
-                style="'."background-color: $tableFooterColor".'"
-            >GRAND TOTAL</td>
-            <td
-                width="20.6%"
-                align="center"
-                style="'."background-color: $tableFooterColor".'"
-            >'.$grandOrCountTotal.'</td>
-            <td
-                width="18%"
-                align="right"
-                style="'."background-color: $tableFooterColor".'"
-            >'.$grandTotalAmount.'</td>
-            <td
-                width="18%"
-                align="center"
-                style="'."background-color: $tableFooterColor".'"
-            ></td>
-        </tr></table>';
+        if (count($categories) > 0) {
+            $tableFooterColor = '#feff01';
+            $htmlTable = '<table border="1" cellpadding="2"><tr>
+                <td
+                    width="43.4%"
+                    align="left"
+                    style="'."background-color: $tableFooterColor".'"
+                >GRAND TOTAL</td>
+                <td
+                    width="20.6%"
+                    align="center"
+                    style="'."background-color: $tableFooterColor".'"
+                >'.$grandOrCountTotal.'</td>
+                <td
+                    width="18%"
+                    align="right"
+                    style="'."background-color: $tableFooterColor".'"
+                >'.$grandTotalAmount.'</td>
+                <td
+                    width="18%"
+                    align="center"
+                    style="'."background-color: $tableFooterColor".'"
+                ></td>
+            </tr></table>';
 
-        $pdf->SetFont($this->fontArialBold, 'B', 12);
-        $pdf->writeHTML($htmlTable, ln: false);
+            $pdf->SetFont($this->fontArialBold, 'B', 12);
+            $pdf->writeHTML($htmlTable, ln: false);
 
-        $pdf->Ln(0.4);
+            $pdf->Ln(0.4);
 
-        $pdf->SetFont($this->fontArial, '', 12);
-        $pdf->Cell($paperWidthWithMargin / 3, 0, 'Prepared by:', 0, 0, 'L');
-        $pdf->Cell($paperWidthWithMargin / 3.5, 0, '', 0, 0, 'L');
-        $pdf->Cell(0, 0, 'Certified Correct:', 0, 1, 'L');
-        $pdf->Ln(0.3);
+            $pdf->SetFont($this->fontArial, '', 12);
+            $pdf->Cell($paperWidthWithMargin / 3, 0, 'Prepared by:', 0, 0, 'L');
+            $pdf->Cell($paperWidthWithMargin / 3.5, 0, '', 0, 0, 'L');
+            $pdf->Cell(0, 0, 'Certified Correct:', 0, 1, 'L');
+            $pdf->Ln(0.3);
 
-        $pdf->SetFont($this->fontArialBold, 'BU', 12);
-        $pdf->Cell($paperWidthWithMargin / 3, 0, "$position $fullName", 0, 0, 'L');
-        $pdf->Cell($paperWidthWithMargin / 3.5, 0, '', 0, 0, 'L');
-        $pdf->Cell(0, 0, "$certifiedCorrectPosition $certifiedCorrectName", 0, 1, 'L');
+            $pdf->SetFont($this->fontArialBold, 'BU', 12);
+            $pdf->Cell($paperWidthWithMargin / 3, 0, "$position $fullName", 0, 0, 'L');
+            $pdf->Cell($paperWidthWithMargin / 3.5, 0, '', 0, 0, 'L');
+            $pdf->Cell(0, 0, "$certifiedCorrectPosition $certifiedCorrectName", 0, 1, 'L');
 
-        $pdf->SetFont($this->fontArial, '', 12);
-        $pdf->Cell($paperWidthWithMargin / 3, 0, $designation, 0, 0, 'L');
-        $pdf->Cell($paperWidthWithMargin / 3.5, 0, '', 0, 0, 'L');
-        $pdf->Cell(0, 0, $certifiedCorrectDesignation, 0, 1, 'L');
+            $pdf->SetFont($this->fontArial, '', 12);
+            $pdf->Cell($paperWidthWithMargin / 3, 0, $designation, 0, 0, 'L');
+            $pdf->Cell($paperWidthWithMargin / 3.5, 0, '', 0, 0, 'L');
+            $pdf->Cell(0, 0, $certifiedCorrectDesignation, 0, 1, 'L');
 
-        $pdf->Ln(0.5);
+            $pdf->Ln(0.5);
 
-        $pdf->Cell($paperWidthWithMargin / 3, 0, '', 0, 0, 'L');
-        $pdf->Cell($paperWidthWithMargin / 3, 0, 'Noted by:', 0, 0, 'L');
-        $pdf->Cell(0, 0, '', 0, 1, 'L');
-        $pdf->Ln(0.3);
+            $pdf->Cell($paperWidthWithMargin / 3, 0, '', 0, 0, 'L');
+            $pdf->Cell($paperWidthWithMargin / 3, 0, 'Noted by:', 0, 0, 'L');
+            $pdf->Cell(0, 0, '', 0, 1, 'L');
+            $pdf->Ln(0.3);
 
-        $pdf->SetFont($this->fontArialBold, 'BU', 12);
-        $pdf->Cell($paperWidthWithMargin / 3, 0, '', 0, 0, 'L');
-        $pdf->Cell($paperWidthWithMargin / 3, 0, "$notedByPosition $notedByName", 0, 0, 'L');
-        $pdf->Cell(0, 0, '', 0, 1, 'L');
+            $pdf->SetFont($this->fontArialBold, 'BU', 12);
+            $pdf->Cell($paperWidthWithMargin / 3, 0, '', 0, 0, 'L');
+            $pdf->Cell($paperWidthWithMargin / 3, 0, "$notedByPosition $notedByName", 0, 0, 'L');
+            $pdf->Cell(0, 0, '', 0, 1, 'L');
 
-        $pdf->SetFont($this->fontArial, '', 12);
-        $pdf->Cell($paperWidthWithMargin / 3, 0, '', 0, 0, 'L');
-        $pdf->Cell(
-            $paperWidthWithMargin / 3, 0,
-            $notedByStation ? "$notedByDesignation, $notedByStation" : $notedByDesignation,
-            0, 0, 'L');
-        $pdf->Cell(0, 0, '', 0, 1, 'L');
+            $pdf->SetFont($this->fontArial, '', 12);
+            $pdf->Cell($paperWidthWithMargin / 3, 0, '', 0, 0, 'L');
+            $pdf->Cell(
+                $paperWidthWithMargin / 3, 0,
+                $notedByStation ? "$notedByDesignation, $notedByStation" : $notedByDesignation,
+                0, 0, 'L');
+            $pdf->Cell(0, 0, '', 0, 1, 'L');
+        }
 
         $pdfBlob = $pdf->Output($filename, 'S');
         $pdfBase64 = base64_encode($pdfBlob);
