@@ -6,6 +6,7 @@ use App\Models\Category;
 use App\Models\Designation;
 use Illuminate\Http\Request;
 use App\Models\OfficialReceipt;
+use App\Models\Particular;
 use App\Models\Discount;
 use App\Models\PaperSize;
 use App\Models\Position;
@@ -61,13 +62,15 @@ class PrintController extends Controller
                 $certifiedCorrectId = $request->certified_correct_id;
                 $notedById = $request->noted_by_id;
                 $paperSizeId = $request->paper_size_id;
-                return $this->printPreviewReportCollection(
+                return $this->printReportCollectionData(
                     $from,
                     $to,
                     $categoryIds,
                     $certifiedCorrectId,
                     $notedById,
-                    $paperSizeId
+                    $paperSizeId,
+                    true,
+                    'pnp_crame'
                 );
 
             case 'report-collection':
@@ -81,10 +84,20 @@ class PrintController extends Controller
                 $notedById = $request->noted_by_id;
                 $paperSizeId = $request->paper_size_id;
 
-
-
                 if ($template === 'coa_accounting') {
-
+                    $printData = $this->printReportCollectionData(
+                        $from,
+                        $to,
+                        $categoryIds,
+                        $certifiedCorrectId,
+                        $notedById,
+                        $paperSizeId,
+                        false,
+                        $template
+                    );
+                    return $this->printReportCollectionCoaAccounting(
+                        $printData
+                    );
                 } else if ($template === 'pnp_crame') {
                     return $this->printReportCollectionCrame(
                         $printData
@@ -396,14 +409,271 @@ class PrintController extends Controller
             ->header('Content-Type', 'application/json');
     }
 
-    private function printPreviewReportCollection(
+    private function printReportCollectionCoaAccounting(
+        $printData
+    ) : JsonResponse
+    {
+        $printData = json_decode($printData);
+
+        $categories = $printData->categories ?? [];
+
+        $certDate = $printData->cert_date;
+        $dimension = [
+            $printData->paper_dimensions->width,
+            $printData->paper_dimensions->height
+        ];
+
+        $position = $printData->user_position;
+        $designation = $printData->user_designation;
+        $station = $printData->user_station;
+        $fullName = $printData->user_name;
+
+        $certifiedCorrectName = $printData->cert_correct_name;
+        $certifiedCorrectPosition = $printData->cert_correct_position;
+        $certifiedCorrectDesignation = $printData->cert_correct_designation;
+
+        $notedByName = $printData->noted_by_name;
+        $notedByPosition = $printData->noted_by_position;
+        $notedByDesignation = $printData->noted_by_designation;
+        $notedByStation = $printData->noted_by_station;
+
+        $grandTotalAmount = $printData->grand_total_amount;
+        $grandOrCountTotal = $printData->grand_or_count_total;
+
+        $docTitle = $printData->doc_title;
+        $filename = $printData->filename;
+
+        // Initiate PDF and configs
+        $pdf = new TCPDF('P', 'in', $dimension);
+        $pdf->SetCreator(PDF_CREATOR);
+        $pdf->SetAuthor(env('APP_NAME'));
+        $pdf->SetTitle($docTitle);
+        $pdf->SetSubject('Report of Collection');
+        $pdf->SetMargins(0.4, 0.7, 0.4);
+        $pdf->setPrintHeader(false);
+        $pdf->setPrintFooter(false);
+        $pdf->SetAutoPageBreak(TRUE, 0.4);
+
+        $pdf->AddPage();
+
+        $paperWidth = $pdf->getPageWidth();
+        $paperWidthWithMargin = $pdf->getPageWidth() - 0.8;
+
+        $this->generateHeaderSection($pdf, true);
+
+        $pdf->SetFont($this->fontArialBold, 'B', 12);
+        $pdf->Cell(0, 0, 'REPORT OF COLLECTION', 0, 1, 'C');
+        $pdf->SetFont($this->fontArialBold, 'BU', 12);
+        $pdf->Cell(
+            0, 0, $certDate,
+            0, 1, 'C'
+        );
+        $pdf->Ln(0.2);
+
+        foreach ($categories as $catKey => $category) {
+            $totalAmount = 0;
+            $totalTransaction = 0;
+            $orCountTotal = 0;
+
+            $pdf->SetFont($this->fontArialNarrowBold, 'B', 12);
+            $pdf->Cell(0, 0, strtoupper($category->category_name), $catKey === 0 ? 0 : 'LR', 1, 'L');
+
+            $tableHeaderColor = $catKey === 0 ? '#e3eeda' : '#fff';
+            $htmlTable = '<table border="1" cellpadding="2"><tr>
+                <td
+                    width="15%"
+                    align="center"
+                    style="'."background-color: $tableHeaderColor".'"
+                >Office/Unit</td>
+                <td
+                    width="27.7%"
+                    align="center"
+                    style="'."background-color: $tableHeaderColor".'"
+                >Kinds of Collection/Service</td>
+                <td
+                    width="15%"
+                    align="center"
+                    style="'."background-color: $tableHeaderColor".'"
+                >Cost Per Transaction</td>
+                <td
+                    width="13.6%"
+                    align="center"
+                    style="'."background-color: $tableHeaderColor".'"
+                >Total Nos. of Transaction</td>
+                <td
+                    width="28.7%"
+                    align="center"
+                    style="'."background-color: $tableHeaderColor".'"
+                >Total Collections</td>
+            </tr></table>';
+
+            $pdf->writeHTML($htmlTable, ln: false);
+
+            $pdf->SetFont($this->fontArialNarrow, '', 10);
+
+            $htmlTable = '<table border="1" cellpadding="2">';
+
+            $rowSpan = 1;
+
+            foreach ($category->particulars ?? [] as $particular) {
+                $particularName = $particular->particular_name;
+                $orCount = $particular->or_count;
+                $orAmountPerTrans = $particular->amount_per_transaction;
+                $orAmountSum = $particular->amount_sum;
+                $totalTransaction += $particular->or_count;
+                $totalAmount += $particular->amount_sum;
+                $orCountTotal += $particular->or_count;
+
+                $htmlTable .= '<tr>';
+                $htmlTable .= '
+                <td
+                    width="15%"
+                    align="center"
+                    rowspan="'.$rowSpan.'"
+                    style="font-family:helvetica;font-weight: bold;"
+                >RFU-COR</td>
+                <td
+                    width="27.7%"
+                    align="left"
+                >'.$particularName.'</td>
+                <td
+                    width="15%"
+                    align="right"
+                >'.$orAmountPerTrans.'</td>
+                <td
+                    width="13.6%"
+                    align="center"
+                >'.$orCount.'</td>
+                <td
+                    width="28.7%"
+                    align="right"
+                >'.$orAmountSum.'</td>';
+                $htmlTable .= '</tr>';
+
+                $rowSpan++;
+            }
+
+            $htmlTable .= '</table>';
+
+            $pdf->writeHTML($htmlTable, ln: false);
+
+            $tableFooterColor = $tableHeaderColor;
+            $htmlTable = '<table border="1" cellpadding="2"><tr>
+                <td
+                    width="15%"
+                    align="center"
+                    style="'."background-color: $tableFooterColor".'"
+                >Sub Total</td>
+                <td
+                    width="27.7%"
+                    align="center"
+                    style="'."background-color: $tableFooterColor".'"
+                ></td>
+                <td
+                    width="15%"
+                    align="center"
+                    style="'."background-color: $tableFooterColor".'"
+                ></td>
+                <td
+                    width="13.6%"
+                    align="center"
+                    style="'."background-color: $tableFooterColor".'"
+                >'.$totalTransaction.'</td>
+                <td
+                    width="28.7%"
+                    align="right"
+                    style="'."background-color: $tableFooterColor".'"
+                >'.($totalAmount ? number_format($totalAmount, 2) : '-').'</td>
+            </tr></table>';
+
+            $pdf->SetFont($this->fontArialNarrowBold, 'B', 16);
+            $pdf->writeHTML($htmlTable, ln: false);
+        }
+
+        $tableFooterColor = $tableHeaderColor;
+        $htmlTable = '<table border="1" cellpadding="2"><tr>
+            <td
+                width="57.7%"
+                align="left"
+                style="'."background-color: $tableFooterColor".'"
+            >GRAND TOTAL</td>
+            <td
+                width="13.6%"
+                align="center"
+                style="'."background-color: $tableFooterColor".'"
+            >'.$grandOrCountTotal.'</td>
+            <td
+                width="28.7%"
+                align="right"
+                style="'."background-color: $tableFooterColor".'"
+            >'.$grandTotalAmount.'</td>
+        </tr></table>';
+
+        $pdf->SetFont($this->fontArialNarrowBold, 'B', 16);
+        $pdf->writeHTML($htmlTable, ln: false);
+
+        $pdf->Ln(0.4);
+
+        $pdf->SetFont($this->fontArial, '', 12);
+        $pdf->Cell($paperWidthWithMargin / 3, 0, 'Prepared by:', 0, 0, 'L');
+        $pdf->Cell($paperWidthWithMargin / 3.5, 0, '', 0, 0, 'L');
+        $pdf->Cell(0, 0, 'Certified Correct:', 0, 1, 'L');
+        $pdf->Ln(0.3);
+
+        $pdf->SetFont($this->fontArialBold, 'BU', 12);
+        $pdf->Cell($paperWidthWithMargin / 3, 0, "$position $fullName", 0, 0, 'L');
+        $pdf->Cell($paperWidthWithMargin / 3.5, 0, '', 0, 0, 'L');
+        $pdf->Cell(0, 0, "$certifiedCorrectPosition $certifiedCorrectName", 0, 1, 'L');
+
+        $pdf->SetFont($this->fontArial, '', 12);
+        $pdf->Cell($paperWidthWithMargin / 3, 0, $designation, 0, 0, 'L');
+        $pdf->Cell($paperWidthWithMargin / 3.5, 0, '', 0, 0, 'L');
+        $pdf->Cell(0, 0, $certifiedCorrectDesignation, 0, 1, 'L');
+
+        $pdf->Ln(0.5);
+
+        $pdf->Cell($paperWidthWithMargin / 3, 0, '', 0, 0, 'L');
+        $pdf->Cell($paperWidthWithMargin / 3, 0, 'Noted by:', 0, 0, 'L');
+        $pdf->Cell(0, 0, '', 0, 1, 'L');
+        $pdf->Ln(0.3);
+
+        $pdf->SetFont($this->fontArialBold, 'BU', 12);
+        $pdf->Cell($paperWidthWithMargin / 3, 0, '', 0, 0, 'L');
+        $pdf->Cell($paperWidthWithMargin / 3, 0, "$notedByPosition $notedByName", 0, 0, 'L');
+        $pdf->Cell(0, 0, '', 0, 1, 'L');
+
+        $pdf->SetFont($this->fontArial, '', 12);
+        $pdf->Cell($paperWidthWithMargin / 3, 0, '', 0, 0, 'L');
+        $pdf->Cell(
+            $paperWidthWithMargin / 3, 0,
+            $notedByStation ? "$notedByDesignation, $notedByStation" : $notedByDesignation,
+            0, 0, 'L');
+        $pdf->Cell(0, 0, '', 0, 1, 'L');
+
+        $pdfBlob = $pdf->Output($filename, 'S');
+        $pdfBase64 = base64_encode($pdfBlob);
+
+        return response()->json([
+            'data' => [
+                'filename' => $filename,
+                'pdf' => $pdfBase64,
+                'success' => 1
+            ]
+        ], 201)
+            ->header('Access-Control-Allow-Origin', '*')
+            ->header('Content-Type', 'application/json');
+    }
+
+    private function printReportCollectionData(
         $from,
         $to,
         $categoryIds = [],
         $certifiedCorrectId,
         $notedById,
-        $paperSizeId
-    ) : JsonResponse
+        $paperSizeId,
+        $isPrintPreview = false,
+        $template
+    ) : JsonResponse | string
     {
         $data = [];
         $dates = $this->generateDateRange($from, $to);
@@ -482,6 +752,8 @@ class PrintController extends Controller
                 $data['categories'][$catCounter]['category_name'] = strtoupper($category->category_name);
 
                 foreach ($category->particulars ?? [] as $parKey => $particular) {
+                    $included = false;
+                    $particularObj = Particular::find($particular->id);
                     $orCount = OfficialReceipt::where('nature_collection_id', $particular->id)
                         ->where(function($query) use($dates) {
                             $query->whereIn('deposited_date', $dates)
@@ -494,8 +766,21 @@ class PrintController extends Controller
                                   ->orWhereIn('cancelled_date', $dates);
                         })
                         ->sum('amount');
+                    $orAmountPerTrans = $particularObj->default_amount ??
+                        OfficialReceipt::where('nature_collection_id', $particular->id)
+                            ->where(function($query) use($dates) {
+                                $query->whereIn('deposited_date', $dates)
+                                    ->orWhereIn('cancelled_date', $dates);
+                            })
+                            ->max('amount');
 
-                    if ($orCount > 0 && $particular->pnp_crame) {
+                    if ($template === 'coa_accounting') {
+                        $included = $particular->coa_accounting;
+                    } else if ($template === 'pnp_crame') {
+                        $included = $particular->pnp_crame;
+                    }
+
+                    if ($orCount > 0 && $included) {
                         $particularName = $particular->particular_name;
                         $totalAmount += $orAmountSum;
                         $orCountTotal += $orCount;
@@ -505,6 +790,8 @@ class PrintController extends Controller
                         $data['categories'][$catCounter]['particulars'][] = [
                             'particular_name' => $particularName,
                             'or_count' => (string) $orCount ?? '-',
+                            'amount_per_transaction' =>
+                                $orAmountPerTrans ? number_format($orAmountPerTrans, 2) : '-',
                             'amount_sum' => $orAmountSum ? number_format($orAmountSum, 2) : '-',
                             'remarks' => ''
                         ];
@@ -521,14 +808,46 @@ class PrintController extends Controller
         $data['grand_total_amount'] = $grandTotalAmount ? number_format($grandTotalAmount, 2) : '-';
         $data['grand_or_count_total'] = (string) $grandOrCountTotal;
 
-        return response()->json([
-            'data' => [
-                'data' => $data,
-                'success' => 1
-            ]
-        ], 201)
-            ->header('Access-Control-Allow-Origin', '*')
-            ->header('Content-Type', 'application/json');
+        if ($isPrintPreview) {
+            return response()->json([
+                'data' => [
+                    'data' => $data,
+                    'success' => 1
+                ]
+            ], 201)
+                ->header('Access-Control-Allow-Origin', '*')
+                ->header('Content-Type', 'application/json');
+        }
+
+        return json_encode($data);
+    }
+
+    private function generateHeaderSection(TCPDF $pdf, $hasEmail = false) : void
+    {
+        $paperWidth = $pdf->getPageWidth();
+        $paperHeight = $pdf->getPageHeight();
+
+        $pdf->Image('images/pnp-logo.png', $paperWidth * 0.193, 0.72, 0.55, 0.8, 'PNG');
+        $pdf->Image('images/pnp-finance-logo.png', $paperWidth * 0.735, 0.72, 0.8, 0.8, 'PNG');
+        $pdf->SetFont($this->fontArial, '', 10);
+        $pdf->Cell(0, 0, 'Republic of the Philippines', 0, 1, 'C');
+        $pdf->Cell(0, 0, 'NATIONAL POLICE COMMISSION', 0, 1, 'C');
+        $pdf->SetFont($this->fontArialBold, 'B', 10);
+        $pdf->Cell(0, 0, 'PHILIPPINE NATIONAL POLICE, FINANCE SERVICE', 0, 1, 'C');
+        $pdf->Cell(0, 0, 'REGIONAL FINANCE UNIT CORDILLERA', 0, 1, 'C');
+        $pdf->SetFont($this->fontArial, '', 10);
+        $pdf->Cell(0, 0, 'Camp Bado Dangwa, La Trinidad, Benguet', 0, 1, 'C');
+
+        if ($hasEmail) {
+            $pdf->SetFont($this->fontArial, '', 7.5);
+            $pdf->writeHTMLCell(
+                0, 0, $pdf->getX(), $pdf->getY(), 'Email Add: <a>rfso15@fs.pnp.gov.ph</a>/Tel (074) 422-3225', 0, 1,
+                align: 'C'
+            );
+            $pdf->SetFont($this->fontArial, '', 10);
+        }
+
+        $pdf->Ln(0.3);
     }
 
     private function printReportCollectionCrame(
@@ -580,17 +899,7 @@ class PrintController extends Controller
         $paperWidth = $pdf->getPageWidth();
         $paperWidthWithMargin = $pdf->getPageWidth() - 0.8;
 
-        $pdf->Image('images/pnp-logo.png', $paperWidth * 0.193, 0.72, 0.55, 0.8, 'PNG');
-        $pdf->Image('images/pnp-finance-logo.png', $paperWidth * 0.735, 0.72, 0.8, 0.8, 'PNG');
-        $pdf->SetFont($this->fontArial, '', 10);
-        $pdf->Cell(0, 0, 'Republic of the Philippines', 0, 1, 'C');
-        $pdf->Cell(0, 0, 'NATIONAL POLICE COMMISSION', 0, 1, 'C');
-        $pdf->SetFont($this->fontArialBold, 'B', 10);
-        $pdf->Cell(0, 0, 'PHILIPPINE NATIONAL POLICE, FINANCE SERVICE', 0, 1, 'C');
-        $pdf->Cell(0, 0, 'REGIONAL FINANCE SERVICE OFFICE 15', 0, 1, 'C');
-        $pdf->SetFont($this->fontArial, '', 10);
-        $pdf->Cell(0, 0, 'Camp Bado Dangwa, La Trinidad, Benguet', 0, 1, 'C');
-        $pdf->Ln(0.3);
+        $this->generateHeaderSection($pdf);
 
         $pdf->SetFont($this->fontArial, '', 12);
         $pdf->Cell(0, 0, 'REPORT OF COLLECTION', 0, 1, 'C');
@@ -603,8 +912,8 @@ class PrintController extends Controller
         $pdf->Ln(0.2);
 
         foreach ($categories as $catKey => $category) {
-            $totalAmount = $category->total_amount;
-            $orCountTotal = $category->or_count_total;
+            $totalAmount = 0;
+            $orCountTotal = 0;
 
             $pdf->SetFont($this->fontArialBold, 'B', 12);
             $pdf->Cell(0, 0, strtoupper($category->category_name), 0, 1, 'L');
@@ -644,6 +953,8 @@ class PrintController extends Controller
                 $orCount = $particular->or_count;
                 $orAmountSum = $particular->amount_sum;
                 $remarks = $particular->remarks;
+                $totalAmount += $particular->amount_sum;
+                $orCountTotal += $particular->or_count;
 
                 $htmlTable .= '<tr>';
                 $htmlTable .= '
@@ -686,7 +997,7 @@ class PrintController extends Controller
                     width="18%"
                     align="right"
                     style="'."background-color: $tableFooterColor".'"
-                >'.$totalAmount.'</td>
+                >'.($totalAmount ? number_format($totalAmount, 2) : '-').'</td>
                 <td
                     width="18%"
                     align="center"
@@ -849,7 +1160,7 @@ class PrintController extends Controller
 
                     $pdf->SetFont($this->fontArial, '', 14);
                     $pdf->Cell(0, 0, '', 'LR', 1, 'C');
-                    $pdf->Cell(0, 0, 'REGIONAL FINANCE SERVICE OFFICE 15', 'LR', 1, 'C');
+                    $pdf->Cell(0, 0, 'REGIONAL FINANCE UNIT CORDILLERA', 'LR', 1, 'C');
                     $pdf->setCellHeightRatio(0.2);
                     $pdf->Cell(0, 0, '', 'LR', 1, 'C');
                     $pdf->setCellHeightRatio(1.25);
@@ -1023,7 +1334,7 @@ class PrintController extends Controller
                     $pdf->MultiCell($paperWidth * 0.86, 0.8,
                         "          I hereby certify that the foregoing is a correct and complete record of all\n".
                         "collections and deposits had by me in my capacity as Collecting Officer of Regional\n".
-                        "Finance Service Office 15 during the period from <strong>$certDate</strong> inclusives, as\n".
+                        "Finance Unit Cordillera during the period from <strong>$certDate</strong> inclusives, as\n".
                         "indicated in the corresponding columns.",
                         0, 'L', 0, 0,
                         ishtml: true
