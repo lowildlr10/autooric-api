@@ -585,7 +585,6 @@ class PrintController extends Controller
                 >'.$orAmountSum.'</td>';
                 $htmlTable .= '</tr>';
 
-
                 foreach ($particular->discounts ?? [] as $discount) {
                     $label = $discount->label;
                     $discountOrCount = $discount->or_count;
@@ -602,12 +601,10 @@ class PrintController extends Controller
                     <td
                         width="28.67%"
                         align="center"
-                        style="font-size:11px;"
                     >'.$discountOrCount.'</td>
                     <td
                         width="21.97%"
                         align="center"
-                        style="font-size:11px;"
                     >'.$discountAmountTrans.'</td>
                     <td
                         width="10.13%"
@@ -616,7 +613,6 @@ class PrintController extends Controller
                     <td
                         width="18.13%"
                         align="right"
-                        style="font-size:11px;"
                     >'.$discountAmountSum.'</td>';
                     $htmlTable .= '</tr>';
                 }
