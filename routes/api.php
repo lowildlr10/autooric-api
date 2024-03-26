@@ -11,7 +11,7 @@ use App\Http\Controllers\PayorController;
 use App\Http\Controllers\SignatoryController;
 use App\Http\Controllers\PaperSizeController;
 use App\Http\Controllers\CategoryController;
-
+use App\Http\Controllers\AccountController;
 
 /*
 |--------------------------------------------------------------------------
@@ -82,6 +82,11 @@ Route::group([
         Route::apiResource('/paper-sizes', 'App\Http\Controllers\PaperSizeController');
         Route::get('/paper-sizes-paginated', [PaperSizeController::class, 'indexPaginated'])
             ->name('paper-sizes.paginated');
+
+        // Route api for account
+        Route::apiResource('/accounts', 'App\Http\Controllers\AccountController');
+        Route::get('/accounts-paginated', [AccountController::class, 'indexPaginated'])
+            ->name('accounts.paginated');
 
         // Route api for positions
         Route::apiResource('/positions', 'App\Http\Controllers\PositionController')

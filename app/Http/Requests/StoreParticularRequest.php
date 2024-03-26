@@ -29,7 +29,8 @@ class StoreParticularRequest extends FormRequest
             'default_amount' => 'nullable',
             'coa_accounting' => 'boolean',
             'pnp_crame' => 'boolean',
-            'firearms_registration' => 'boolean'
+            'firearms_registration' => 'boolean',
+            'account_id' => 'required|string'
         ];
     }
 

@@ -64,15 +64,15 @@ class OfficialReceiptController extends Controller
         // Validate the request
         $request->validated();
 
-        // Create a new payor if not exists and get the id
-        $payor = Payor::find($request->payor_id);
-        if (!$payor) {
-            $payor = Payor::create([
-                'payor_name' => $request->payor_id,
-            ]);
-        }
-
         try {
+            // Create a new payor if not exists and get the id
+            $payor = Payor::find($request->payor_id);
+            if (!$payor) {
+                $payor = Payor::create([
+                    'payor_name' => $request->payor_id,
+                ]);
+            }
+
             // Create a new official receipt
             $officialReceipt = OfficialReceipt::create([
                 'accountable_personnel_id' => $request->user()->id,

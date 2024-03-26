@@ -16,6 +16,7 @@ class Particular extends Model
         'id',
         'particular_name',
         'category_id',
+        'account_id',
         'default_amount',
         'order_no',
         'coa_accounting',
@@ -40,5 +41,10 @@ class Particular extends Model
     public function category()
     {
         return $this->belongsTo(Category::class, 'category_id', 'id');
+    }
+
+    public function account()
+    {
+        return $this->belongsTo(Account::class, 'account_id', 'id');
     }
 }

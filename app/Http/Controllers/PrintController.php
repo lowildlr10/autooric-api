@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Category;
+use App\Models\Account;
 use App\Models\Designation;
 use Illuminate\Http\Request;
 use App\Models\OfficialReceipt;
@@ -559,6 +560,7 @@ class PrintController extends Controller
                 $orCount = $particular->or_count_not_discounted;
                 $orAmountPerTrans = $particular->amount_per_transaction_not_discounted;
                 $orAmountSum = $particular->amount_sum_not_discounted;
+                $orAmountCancelledSum = $particular->cancelled_amount_sum_not_discounted;
 
                 $htmlTable .= '<tr>';
                 $htmlTable .= '
@@ -578,7 +580,7 @@ class PrintController extends Controller
                 <td
                     width="10.13%"
                     align="center"
-                ></td>
+                >'.$orAmountCancelledSum.'</td>
                 <td
                     width="18.13%"
                     align="right"
@@ -590,6 +592,7 @@ class PrintController extends Controller
                     $discountOrCount = $discount->or_count;
                     $discountAmountSum = $discount->amount_sum;
                     $discountAmountTrans = $discount->amount_per_transaction;
+                    $discountAmountCancelledSum = $discount->cancelled_amount_sum;
 
                     $htmlTable .= '<tr>';
                     $htmlTable .= '
@@ -609,7 +612,7 @@ class PrintController extends Controller
                     <td
                         width="10.13%"
                         align="center"
-                    ></td>
+                    >'.$discountAmountCancelledSum.'</td>
                     <td
                         width="18.13%"
                         align="right"
@@ -663,13 +666,14 @@ class PrintController extends Controller
                         style="background-color:#e3eeda"
                     >Date of Deposit</td>';
 
-                foreach ($depositHeaders as $dHeader) {
+                foreach ($depositHeaders as $dHeadKey => $dHeader) {
                     $htmlTable .= '
                     <td
                         width="'.((100-21.1) / count($depositHeaders)).'%"
                         align="center"
                         style="background-color:#e3eeda;"
-                    >'.$dHeader->particular_name.'</td>';
+                    >'.($dHeadKey === count($depositHeaders) - 1 ?
+                        'Total Deposit' : $dHeader->particular_name).'</td>';
                 }
 
                 $htmlTable .= '</tr></table>';
@@ -1383,16 +1387,21 @@ class PrintController extends Controller
                         ->whereNull('discount_id')
                         ->count();
                     $orAmountSum = OfficialReceipt::where('nature_collection_id', $particular->id)
-                        ->where(function($query) use($dates) {
-                            $query->whereIn('deposited_date', $dates)
-                                  ->orWhereIn('cancelled_date', $dates);
-                        })
+                        ->whereIn('deposited_date', $dates)
+                        ->whereNull('cancelled_date')
+                        ->sum('amount');
+                    $orAmountSumCancelled = OfficialReceipt::where('nature_collection_id', $particular->id)
+                        ->whereIn('cancelled_date', $dates)
+                        ->whereNull('deposited_date')
                         ->sum('amount');
                     $orAmountSumNoDiscount = OfficialReceipt::where('nature_collection_id', $particular->id)
-                        ->where(function($query) use($dates) {
-                            $query->whereIn('deposited_date', $dates)
-                                  ->orWhereIn('cancelled_date', $dates);
-                        })
+                        ->whereIn('deposited_date', $dates)
+                        ->whereNull('discount_id')
+                        ->whereNull('cancelled_date')
+                        ->sum('amount');
+                    $orAmountSumCancelledNoDiscount = OfficialReceipt::where('nature_collection_id', $particular->id)
+                        ->whereIn('cancelled_date', $dates)
+                        ->whereNull('deposited_date')
                         ->whereNull('discount_id')
                         ->sum('amount');
                     $orAmountPerTrans = $particularObj->default_amount ??
@@ -1415,10 +1424,13 @@ class PrintController extends Controller
                     $discounts = Discount::orderBy('discount_name')->get();
 
                     foreach ($discounts as $discount) {
-                        $discountName = strtolower($discount->discount_name);
+                        $discountName = $discount->discount_name;
                         $percentage = round($discount->percent, 2);
                         $orCountDiscounted = OfficialReceipt::where('nature_collection_id', $particular->id)
-                            ->whereIn('deposited_date', $dates)
+                            ->where(function($query) use($dates) {
+                                $query->whereIn('deposited_date', $dates)
+                                    ->orWhereIn('cancelled_date', $dates);
+                            })
                             ->where('discount_id', $discount->id)
                             ->count();
 
@@ -1429,17 +1441,28 @@ class PrintController extends Controller
                         $orAmountSumDiscounted = OfficialReceipt::where('nature_collection_id', $particular->id)
                             ->whereIn('deposited_date', $dates)
                             ->where('discount_id', $discount->id)
+                            ->whereNull('cancelled_date')
+                            ->sum('amount');
+                        $orAmountSumCancelledDiscounted = OfficialReceipt::where('nature_collection_id', $particular->id)
+                            ->whereIn('cancelled_date', $dates)
+                            ->whereNull('deposited_date')
+                            ->where('discount_id', $discount->id)
                             ->sum('amount');
                         $orAmountPerTransDiscounted = $particularObj->default_amount ?
                             $particularObj->default_amount - ($particularObj->default_amount * ($discount->percent / 100)) :
                             OfficialReceipt::where('nature_collection_id', $particular->id)
-                                ->whereIn('deposited_date', $dates)
+                                ->where(function($query) use($dates) {
+                                    $query->whereIn('deposited_date', $dates)
+                                        ->orWhereIn('cancelled_date', $dates);
+                                })
                                 ->where('discount_id', $discount->id)
                                 ->min('amount');
 
                         $particularDiscounts[] = [
                             'label' => "*with $discountName discount ($percentage%)",
                             'or_count' => (string) $orCountDiscounted ?? '-',
+                            'cancelled_amount_sum' =>
+                                $orAmountSumCancelledDiscounted ? number_format($orAmountSumCancelledDiscounted, 2) : '',
                             'amount_sum' =>
                                 $orAmountSumDiscounted ? number_format($orAmountSumDiscounted, 2) : '-',
                             'amount_per_transaction' =>
@@ -1471,8 +1494,12 @@ class PrintController extends Controller
                             'amount_per_transaction_not_discounted' =>
                                 $orAmountPerTransNoDiscount ? number_format($orAmountPerTransNoDiscount, 2) : '-',
                             'amount_sum' => $orAmountSum ? number_format($orAmountSum, 2) : '-',
+                            'cancelled_amount_sum' =>
+                                $orAmountSumCancelled ? number_format($orAmountSumCancelled, 2) : '',
                             'amount_sum_not_discounted' =>
                                 $orAmountSumNoDiscount ? number_format($orAmountSumNoDiscount, 2) : '-',
+                            'cancelled_amount_sum_not_discounted' =>
+                                $orAmountSumCancelledNoDiscount ? number_format($orAmountSumCancelledNoDiscount, 2) : '',
                             'remarks' => '',
                             'discounts' => $particularDiscounts
                         ];
@@ -1498,9 +1525,10 @@ class PrintController extends Controller
             foreach ($categories as $catKey => $category) {
                 foreach ($category->particulars ?? [] as $parKey => $particular) {
                     if ($particular->firearms_registration) {
+                        $account = Account::find($particular->account_id);
                         $depositHeaders[] = [
                             'id' => $particular->id,
-                            'particular_name' => $particular->particular_name,
+                            'particular_name' => "$account->account_name<br/>($particular->particular_name)",
                             'grand_total_amount' => 0
                         ];
                     }

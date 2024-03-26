@@ -102,31 +102,31 @@ class UserManagementController extends Controller
             'is_active' => 'required|boolean'
         ]);
 
-        // Create a new position if not exists and get the id
-        $position = Position::find($validated['position_id']);
-        if (!$position) {
-            $position = Position::create([
-                'position_name' => $validated['position_id'],
-            ]);
-        }
-
-        // Create a new designation if not exists and get the id
-        $designation = Designation::find($validated['designation_id']);
-        if (!$designation) {
-            $designation = Designation::create([
-                'designation_name' => $validated['designation_id'],
-            ]);
-        }
-
-        // Create a new station if not exists and get the id
-        $station = Station::find($validated['station_id']);
-        if (!$station) {
-            $station = Station::create([
-                'station_name' => $validated['station_id'],
-            ]);
-        }
-
         try {
+            // Create a new position if not exists and get the id
+            $position = Position::find($validated['position_id']);
+            if (!$position) {
+                $position = Position::create([
+                    'position_name' => $validated['position_id'],
+                ]);
+            }
+
+            // Create a new designation if not exists and get the id
+            $designation = Designation::find($validated['designation_id']);
+            if (!$designation) {
+                $designation = Designation::create([
+                    'designation_name' => $validated['designation_id'],
+                ]);
+            }
+
+            // Create a new station if not exists and get the id
+            $station = Station::find($validated['station_id']);
+            if (!$station) {
+                $station = Station::create([
+                    'station_name' => $validated['station_id'],
+                ]);
+            }
+
             // Create a user
             $user = User::create(array_merge(
                 $validated,
@@ -206,31 +206,31 @@ class UserManagementController extends Controller
             'password' => ''
         ]);
 
-        // Create a new position if not exists and get the id
-        $position = Position::find($validated['position_id']);
-        if (!$position) {
-            $position = Position::create([
-                'position_name' => $validated['position_id'],
-            ]);
-        }
-
-        // Create a new designation if not exists and get the id
-        $designation = Designation::find($validated['designation_id']);
-        if (!$designation) {
-            $designation = Designation::create([
-                'designation_name' => $validated['designation_id'],
-            ]);
-        }
-
-        // Create a new station if not exists and get the id
-        $station = Station::find($validated['station_id']);
-        if (!$station) {
-            $station = Station::create([
-                'station_name' => $validated['station_id'],
-            ]);
-        }
-
         try {
+            // Create a new position if not exists and get the id
+            $position = Position::find($validated['position_id']);
+            if (!$position) {
+                $position = Position::create([
+                    'position_name' => $validated['position_id'],
+                ]);
+            }
+
+            // Create a new designation if not exists and get the id
+            $designation = Designation::find($validated['designation_id']);
+            if (!$designation) {
+                $designation = Designation::create([
+                    'designation_name' => $validated['designation_id'],
+                ]);
+            }
+
+            // Create a new station if not exists and get the id
+            $station = Station::find($validated['station_id']);
+            if (!$station) {
+                $station = Station::create([
+                    'station_name' => $validated['station_id'],
+                ]);
+            }
+
             // Update a user
             $user = User::find($id);
 

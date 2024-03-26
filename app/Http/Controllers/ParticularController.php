@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Category;
+use App\Models\Account;
 use App\Models\Particular;
 use App\Http\Requests\StoreParticularRequest;
 use App\Http\Requests\UpdateParticularRequest;
@@ -16,7 +17,10 @@ class ParticularController extends Controller
     public function index()
     {
         // Get all the particulars
-        $particulars = Particular::with('category:id,category_name')
+        $particulars = Particular::with([
+                'category:id,category_name',
+                'account:id,account_name'
+            ])
             ->orderBy('particular_name')
             ->get();
 
@@ -36,7 +40,7 @@ class ParticularController extends Controller
             if ($search) {
                 $query->where('particular_name', 'LIKE', "%$search%");
             }
-        }]);
+        }, 'particulars.account']);
 
         if ($search) {
             $categories = $categories
@@ -62,15 +66,23 @@ class ParticularController extends Controller
         // Validate the request
         $request->validated();
 
-        // Create a new category if not exists and get the id
-        $category = Category::find($request->category_id);
-        if (!$category) {
-            $category = Category::create([
-                'category_name' => $request->category_id
-            ]);
-        }
-
         try {
+            // Create a new category if not exists and get the id
+            $category = Category::find($request->category_id);
+            if (!$category) {
+                $category = Category::create([
+                    'category_name' => $request->category_id
+                ]);
+            }
+
+            // Create a new account if not exists and get the id
+            $account = Account::find($request->account_id);
+            if (!$account) {
+                $account = Account::create([
+                    'account_name' => $request->account_id
+                ]);
+            }
+
             $isExisting = Particular::where('category_id', $category->id)
                 ->where('particular_name', $request->particular_name)
                 ->first();
@@ -93,7 +105,8 @@ class ParticularController extends Controller
                     ->count(),
                 'coa_accounting' => $request->coa_accounting,
                 'pnp_crame' => $request->pnp_crame,
-                'firearms_registration' => $request->firearms_registration
+                'firearms_registration' => $request->firearms_registration,
+                'account_id' => $account->id
             ]);
         } catch (\Throwable $th) {
             return response()->json([
@@ -137,15 +150,23 @@ class ParticularController extends Controller
         // Validate the request
         $request->validated();
 
-        // Create a new category if not exists and get the id
-        $category = Category::find($request->category_id);
-        if (!$category) {
-            $category = Category::create([
-                'category_name' => $request->category_id
-            ]);
-        }
-
         try {
+            // Create a new category if not exists and get the id
+            $category = Category::find($request->category_id);
+            if (!$category) {
+                $category = Category::create([
+                    'category_name' => $request->category_id
+                ]);
+            }
+
+            // Create a new account if not exists and get the id
+            $account = Account::find($request->account_id);
+            if (!$account) {
+                $account = Account::create([
+                    'account_name' => $request->account_id
+                ]);
+            }
+
             // Update a new particular
             $particular->update([
                 'category_id' => $category->id,
@@ -154,7 +175,8 @@ class ParticularController extends Controller
                 'order_no' => $request->order_no,
                 'coa_accounting' => $request->coa_accounting,
                 'pnp_crame' => $request->pnp_crame,
-                'firearms_registration' => $request->firearms_registration
+                'firearms_registration' => $request->firearms_registration,
+                'account_id' => $account->id
             ]);
         } catch (\Throwable $th) {
             return response()->json([

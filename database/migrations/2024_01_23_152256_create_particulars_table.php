@@ -17,6 +17,10 @@ return new class extends Migration
             $table->foreign('category_id')
                 ->references('id')
                 ->on('categories');
+            $table->uuid('account_id');
+            $table->foreign('account_id')
+                ->references('id')
+                ->on('accounts');
             $table->string('particular_name');
             $table->double('default_amount', 20, 2)->nullable();
             $table->integer('order_no')->unsigned();
