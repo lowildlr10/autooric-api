@@ -25,13 +25,13 @@ class Handler extends ExceptionHandler
      */
     public function register(): void
     {
-        // $this->renderable(function (Throwable $e, Request $request) {
-        //     return response()->json([
-        //         'data' => [
-        //             'message' => $e->getMessage(),
-        //             'error' => 1
-        //         ]
-        //     ], 500);
-        // });
+        $this->renderable(function (Throwable $e, Request $request) {
+            return response()->json([
+                'data' => [
+                    'message' => $e->getMessage(),
+                    'error' => 1
+                ]
+            ], 500);
+        });
     }
 }
