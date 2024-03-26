@@ -46,8 +46,10 @@ services:
             - '${FORWARD_PHPMYADMIN_PORT:-8080}:80'
         environment:
             PMA_HOST: mysql
-            MYSQL_ROOT_PASSWORD: '${DB_PASSWORD}'
+            PMA_PORT: 3306
             UPLOAD_LIMIT: 128M
+        networks:
+            - sail
         depends_on:
             - mysql
             - autooric_api.test
