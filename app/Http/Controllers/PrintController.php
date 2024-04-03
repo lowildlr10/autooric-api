@@ -225,7 +225,7 @@ class PrintController extends Controller
         $position = Position::find(auth()->user()->position_id);
         $positionName = ucwords(strtolower($position->position_name));
         $designation = Designation::find(auth()->user()->designation_id);
-        $desinationName = ucwords(strtolower($designation->designation_name));
+        $desinationName = $designation->designation_name;
         $station = Station::find(auth()->user()->station_id);
         $stationName = ucwords(strtolower($station->station_name));
         $fullName = $middleName ? "$firstName $middleName $lastName" : "$firstName $lastName";
@@ -1625,7 +1625,7 @@ class PrintController extends Controller
         // Get current user
         $user = $this->getCurrentUser();
         $position = strtoupper($user->position);
-        $designation = strtoupper($user->designation);
+        $designation = $user->designation;
         $station = strtoupper($user->station);
         $fullName = $user->name;
 
