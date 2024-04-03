@@ -253,9 +253,9 @@ class PrintController extends Controller
             $dateToYear = date("Y", strtotime($to));
 
             if ($dateFromYear === $dateToYear) {
-                $certDate = strtoupper("$dateFromMonth to $dateToMonth $dateFromYear");
+                $certDate = strtoupper("$dateFromMonth - $dateToMonth $dateFromYear");
             } else {
-                $certDate = strtoupper("$dateFrom to $dateTo");
+                $certDate = strtoupper("$dateFrom - $dateTo");
             }
         }
 
