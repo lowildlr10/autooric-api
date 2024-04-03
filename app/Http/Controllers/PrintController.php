@@ -71,12 +71,11 @@ class PrintController extends Controller
                     $notedById,
                     $paperSizeId,
                     true,
-                    'pnp_crame'
+                    'coa_accounting'
                 );
 
             case 'report-collection':
                 $template = $request->template;
-                $printData = $request->print_data;
 
                 $from = $request->from;
                 $to = $request->to;
@@ -86,6 +85,11 @@ class PrintController extends Controller
                 $paperSizeId = $request->paper_size_id;
 
                 if ($template === 'coa_accounting') {
+                    $printData = $request->print_data;
+                    return $this->printReportCollectionCoaAccounting(
+                        $printData
+                    );
+                } else if ($template === 'pnp_crame') {
                     $printData = $this->printReportCollectionData(
                         $from,
                         $to,
@@ -96,10 +100,6 @@ class PrintController extends Controller
                         false,
                         $template
                     );
-                    return $this->printReportCollectionCoaAccounting(
-                        $printData
-                    );
-                } else if ($template === 'pnp_crame') {
                     return $this->printReportCollectionCrame(
                         $printData
                     );
@@ -520,38 +520,40 @@ class PrintController extends Controller
             $totalAmount = !empty($category->total_amount) ? $category->total_amount : '-';
             $orCountTotal = !empty($category->or_count_total) ? $category->or_count_total : 0;
 
-            $pdf->SetFont($this->fontArialBold, 'B', 12);
+            if ($catKey === 0) {
+                $pdf->SetFont($this->fontArialBold, 'B', 12);
 
-            $tableHeaderColor = $catKey === 0 ? '#e3eeda' : '#fff';
-            $htmlTable = '<table border="1" cellpadding="2"><tr>
-                <td
-                    width="21.1%"
-                    align="center"
-                    style="'."background-color: $tableHeaderColor".'"
-                >Particular</td>
-                <td
-                    width="28.67%"
-                    align="center"
-                    style="'."background-color: $tableHeaderColor".';font-size:11px;"
-                >Volume of Official Receipts used</td>
-                <td
-                    width="21.97%"
-                    align="center"
-                    style="'."background-color: $tableHeaderColor".'"
-                >Amount Paid</td>
-                <td
-                    width="10.13%"
-                    align="center"
-                    style="'."background-color: $tableHeaderColor".';font-size:10px;"
-                >Cancelled</td>
-                <td
-                    width="18.13%"
-                    align="center"
-                    style="'."background-color: $tableHeaderColor".'"
-                >TOTAL Amount</td>
-            </tr></table>';
+                $tableHeaderColor = '#e3eeda';
+                $htmlTable = '<table border="1" cellpadding="2"><tr>
+                    <td
+                        width="21.1%"
+                        align="center"
+                        style="'."background-color: $tableHeaderColor".'"
+                    >Particular</td>
+                    <td
+                        width="28.67%"
+                        align="center"
+                        style="'."background-color: $tableHeaderColor".';font-size:11px;"
+                    >Volume of Official Receipts used</td>
+                    <td
+                        width="21.97%"
+                        align="center"
+                        style="'."background-color: $tableHeaderColor".'"
+                    >Amount Paid</td>
+                    <td
+                        width="10.13%"
+                        align="center"
+                        style="'."background-color: $tableHeaderColor".';font-size:10px;"
+                    >Cancelled</td>
+                    <td
+                        width="18.13%"
+                        align="center"
+                        style="'."background-color: $tableHeaderColor".'"
+                    >TOTAL Amount</td>
+                </tr></table>';
 
-            $pdf->writeHTML($htmlTable, ln: false);
+                $pdf->writeHTML($htmlTable, ln: false);
+            }
 
             $htmlTable = '<table border="1" cellpadding="2">';
 
@@ -797,6 +799,7 @@ class PrintController extends Controller
     ) : JsonResponse
     {
         $printData = json_decode($printData);
+
         $categories = $printData->categories ?? [];
 
         $certDate = $printData->cert_date;
@@ -841,140 +844,155 @@ class PrintController extends Controller
         $paperWidth = $pdf->getPageWidth();
         $paperWidthWithMargin = $pdf->getPageWidth() - 0.8;
 
-        $this->generateHeaderSection($pdf);
+        $this->generateHeaderSection($pdf, true);
 
-        $pdf->SetFont($this->fontArial, '', 12);
+        $pdf->SetFont($this->fontArialBold, 'B', 12);
         $pdf->Cell(0, 0, 'REPORT OF COLLECTION', 0, 1, 'C');
-        $pdf->SetFont('helvetica', '', 12);
-        $pdf->MultiCell(
-            0, 0,
-            "For the Month of <strong>$certDate</strong>",
-            0, 'C', ln: 1, ishtml: true
+        $pdf->SetFont($this->fontArialBold, 'BU', 12);
+        $pdf->Cell(
+            0, 0, $certDate,
+            0, 1, 'C'
         );
         $pdf->Ln(0.2);
 
+        $isFirstCategory = true;
+
         foreach ($categories as $catKey => $category) {
+            $rowSpan = count($category->particulars ?? []);
             $totalAmount = !empty($category->total_amount) ? $category->total_amount : '-';
-            $orCountTotal = !empty($category->or_count_total) ? $category->or_count_total : '0';
+            $orCountTotal = !empty($category->or_count_total) ? $category->or_count_total : 0;
 
-            $pdf->SetFont($this->fontArialBold, 'B', 12);
-            $pdf->Cell(0, 0, strtoupper($category->category_name), 0, 1, 'L');
+            if ($rowSpan > 0) {
+                $pdf->SetFont($this->fontArialNarrowBold, 'B', 12);
+                $pdf->Cell(0, 0, strtoupper($category->category_name), $isFirstCategory ? 0 : 'LR', 1, 'L');
 
-            $tableHeaderColor = $catKey === 0 ? '#9aba59' : '#fff';
-            $htmlTable = '<table border="1" cellpadding="2"><tr>
-                <td
-                    width="43.4%"
-                    align="center"
-                    style="'."background-color: $tableHeaderColor".'"
-                >PARTICULARS</td>
-                <td
-                    width="20.6%"
-                    align="center"
-                    style="'."background-color: $tableHeaderColor".'"
-                >NR OF OR USED</td>
-                <td
-                    width="18%"
-                    align="center"
-                    style="'."background-color: $tableHeaderColor".'"
-                >AMOUNT</td>
-                <td
-                    width="18%"
-                    align="center"
-                    style="'."background-color: $tableHeaderColor".'"
-                >REMARKS</td>
-            </tr></table>';
+                $isFirstCategory = false;
+                $tableHeaderColor = '#e3eeda';
+                $htmlTable = '<table border="1" cellpadding="2"><tr>
+                    <td
+                        width="15%"
+                        align="center"
+                        style="'."background-color: $tableHeaderColor".'"
+                    >Office/Unit</td>
+                    <td
+                        width="27.7%"
+                        align="center"
+                        style="'."background-color: $tableHeaderColor".'"
+                    >Kinds of Collection/Service</td>
+                    <td
+                        width="15%"
+                        align="center"
+                        style="'."background-color: $tableHeaderColor".'"
+                    >Cost Per Transaction</td>
+                    <td
+                        width="13.6%"
+                        align="center"
+                        style="'."background-color: $tableHeaderColor".'"
+                    >Total Nos. of Transaction</td>
+                    <td
+                        width="28.7%"
+                        align="center"
+                        style="'."background-color: $tableHeaderColor".'"
+                    >Total Collections</td>
+                </tr></table>';
 
-            $pdf->writeHTML($htmlTable, ln: false);
+                $pdf->writeHTML($htmlTable, ln: false);
+                $pdf->SetFont($this->fontArialNarrow, '', 10);
 
-            $pdf->SetFont($this->fontArial, '', 10);
+                $htmlTable = '<table border="1" cellpadding="2">';
 
-            $htmlTable = '<table border="1" cellpadding="2">';
+                foreach ($category->particulars ?? [] as $parKey => $particular) {
+                    $particularName = $particular->particular_name;
+                    $orCount = $particular->or_count;
+                    $orAmountPerTrans = $particular->amount_per_transaction;
+                    $orAmountSum = $particular->amount_sum;
 
-            foreach ($category->particulars ?? [] as $particular) {
-                $particularName = $particular->particular_name;
-                $orCount = $particular->or_count;
-                $orAmountSum = $particular->amount_sum;
-                $remarks = $particular->remarks;
+                    $htmlTable .= '<tr>';
+                    $htmlTable .= ($parKey === 0 ? '
+                    <td
+                        width="15%"
+                        align="center"
+                        rowspan="'.$rowSpan.'"
+                        style="font-family:helvetica;font-weight:bold;vertical-align:middle;"
+                    >RFU-COR</td>' : '') . '
+                    <td
+                        width="27.7%"
+                        align="left"
+                    >'.$particularName.'</td>
+                    <td
+                        width="15%"
+                        align="right"
+                    >'.$orAmountPerTrans.'</td>
+                    <td
+                        width="13.6%"
+                        align="center"
+                    >'.$orCount.'</td>
+                    <td
+                        width="28.7%"
+                        align="right"
+                    >'.$orAmountSum.'</td>';
+                    $htmlTable .= '</tr>';
+                }
 
-                $htmlTable .= '<tr>';
-                $htmlTable .= '
-                <td
-                    width="43.4%"
-                    align="left"
-                >'.$particularName.'</td>
-                <td
-                    width="20.6%"
-                    align="center"
-                >'.$orCount.'</td>
-                <td
-                    width="18%"
-                    align="right"
-                >'.$orAmountSum.'</td>
-                <td
-                    width="18%"
-                    align="left"
-                >'.$remarks.'</td>';
-                $htmlTable .= '</tr>';
+                $htmlTable .= '</table>';
+
+                $pdf->writeHTML($htmlTable, ln: false);
+
+                $tableFooterColor = '#e3eeda';
+                $htmlTable = '<table border="1" cellpadding="2"><tr>
+                    <td
+                        width="15%"
+                        align="center"
+                        style="'."background-color: $tableFooterColor".'"
+                    >Sub Total</td>
+                    <td
+                        width="27.7%"
+                        align="center"
+                        style="'."background-color: $tableFooterColor".'"
+                    ></td>
+                    <td
+                        width="15%"
+                        align="center"
+                        style="'."background-color: $tableFooterColor".'"
+                    ></td>
+                    <td
+                        width="13.6%"
+                        align="center"
+                        style="'."background-color: $tableFooterColor".'"
+                    >'.$orCountTotal.'</td>
+                    <td
+                        width="28.7%"
+                        align="right"
+                        style="'."background-color: $tableFooterColor".'"
+                    >'.$totalAmount.'</td>
+                </tr></table>';
+
+                $pdf->SetFont($this->fontArialNarrowBold, 'B', 16);
+                $pdf->writeHTML($htmlTable, ln: false);
             }
-
-            $htmlTable .= '</table>';
-
-            $pdf->writeHTML($htmlTable, ln: false);
-
-            $tableFooterColor = '#dbe5f1';
-            $htmlTable = '<table border="1" cellpadding="2"><tr>
-                <td
-                    width="43.4%"
-                    align="center"
-                    style="'."background-color: $tableFooterColor".'"
-                >TOTAL</td>
-                <td
-                    width="20.6%"
-                    align="center"
-                    style="'."background-color: $tableFooterColor".'"
-                >'.$orCountTotal.'</td>
-                <td
-                    width="18%"
-                    align="right"
-                    style="'."background-color: $tableFooterColor".'"
-                >'.$totalAmount.'</td>
-                <td
-                    width="18%"
-                    align="center"
-                    style="'."background-color: $tableFooterColor".'"
-                ></td>
-            </tr></table>';
-
-            $pdf->SetFont($this->fontArialBold, 'B', 11);
-            $pdf->writeHTML($htmlTable, ln: false);
         }
 
         if (count($categories) > 0) {
-            $tableFooterColor = '#feff01';
+            $tableFooterColor = '#e3eeda';
             $htmlTable = '<table border="1" cellpadding="2"><tr>
                 <td
-                    width="43.4%"
+                    width="57.7%"
                     align="left"
                     style="'."background-color: $tableFooterColor".'"
                 >GRAND TOTAL</td>
                 <td
-                    width="20.6%"
+                    width="13.6%"
                     align="center"
                     style="'."background-color: $tableFooterColor".'"
                 >'.$grandOrCountTotal.'</td>
                 <td
-                    width="18%"
+                    width="28.7%"
                     align="right"
                     style="'."background-color: $tableFooterColor".'"
                 >'.$grandTotalAmount.'</td>
-                <td
-                    width="18%"
-                    align="center"
-                    style="'."background-color: $tableFooterColor".'"
-                ></td>
             </tr></table>';
 
-            $pdf->SetFont($this->fontArialBold, 'B', 12);
+            $pdf->SetFont($this->fontArialNarrowBold, 'B', 16);
             $pdf->writeHTML($htmlTable, ln: false);
 
             $pdf->Ln(0.4);
@@ -1035,7 +1053,6 @@ class PrintController extends Controller
     ) : JsonResponse
     {
         $printData = json_decode($printData);
-
         $categories = $printData->categories ?? [];
 
         $certDate = $printData->cert_date;
@@ -1080,152 +1097,146 @@ class PrintController extends Controller
         $paperWidth = $pdf->getPageWidth();
         $paperWidthWithMargin = $pdf->getPageWidth() - 0.8;
 
-        $this->generateHeaderSection($pdf, true);
+        $this->generateHeaderSection($pdf);
 
-        $pdf->SetFont($this->fontArialBold, 'B', 12);
+        $pdf->SetFont($this->fontArial, '', 12);
         $pdf->Cell(0, 0, 'REPORT OF COLLECTION', 0, 1, 'C');
-        $pdf->SetFont($this->fontArialBold, 'BU', 12);
-        $pdf->Cell(
-            0, 0, $certDate,
-            0, 1, 'C'
+        $pdf->SetFont('helvetica', '', 12);
+        $pdf->MultiCell(
+            0, 0,
+            "For the Month of <strong>$certDate</strong>",
+            0, 'C', ln: 1, ishtml: true
         );
         $pdf->Ln(0.2);
 
+        $isFirstCategory = true;
+
         foreach ($categories as $catKey => $category) {
+            $particularCount = count($category->particulars ?? []);
             $totalAmount = !empty($category->total_amount) ? $category->total_amount : '-';
-            $orCountTotal = !empty($category->or_count_total) ? $category->or_count_total : 0;
+            $orCountTotal = !empty($category->or_count_total) ? $category->or_count_total : '0';
 
-            $pdf->SetFont($this->fontArialNarrowBold, 'B', 12);
-            $pdf->Cell(0, 0, strtoupper($category->category_name), $catKey === 0 ? 0 : 'LR', 1, 'L');
+            if ($particularCount > 0) {
+                $pdf->SetFont($this->fontArialBold, 'B', 12);
+                $pdf->Cell(0, 0, strtoupper($category->category_name), 0, 1, 'L');
 
-            $tableHeaderColor = $catKey === 0 ? '#e3eeda' : '#fff';
-            $htmlTable = '<table border="1" cellpadding="2"><tr>
-                <td
-                    width="15%"
-                    align="center"
-                    style="'."background-color: $tableHeaderColor".'"
-                >Office/Unit</td>
-                <td
-                    width="27.7%"
-                    align="center"
-                    style="'."background-color: $tableHeaderColor".'"
-                >Kinds of Collection/Service</td>
-                <td
-                    width="15%"
-                    align="center"
-                    style="'."background-color: $tableHeaderColor".'"
-                >Cost Per Transaction</td>
-                <td
-                    width="13.6%"
-                    align="center"
-                    style="'."background-color: $tableHeaderColor".'"
-                >Total Nos. of Transaction</td>
-                <td
-                    width="28.7%"
-                    align="center"
-                    style="'."background-color: $tableHeaderColor".'"
-                >Total Collections</td>
-            </tr></table>';
+                $tableHeaderColor = $isFirstCategory ? '#9aba59' : '#fff';
+                $isFirstCategory = false;
+                $htmlTable = '<table border="1" cellpadding="2"><tr>
+                    <td
+                        width="43.4%"
+                        align="center"
+                        style="'."background-color: $tableHeaderColor".'"
+                    >PARTICULARS</td>
+                    <td
+                        width="20.6%"
+                        align="center"
+                        style="'."background-color: $tableHeaderColor".'"
+                    >NR OF OR USED</td>
+                    <td
+                        width="18%"
+                        align="center"
+                        style="'."background-color: $tableHeaderColor".'"
+                    >AMOUNT</td>
+                    <td
+                        width="18%"
+                        align="center"
+                        style="'."background-color: $tableHeaderColor".'"
+                    >REMARKS</td>
+                </tr></table>';
 
-            $pdf->writeHTML($htmlTable, ln: false);
+                $pdf->writeHTML($htmlTable, ln: false);
 
-            $pdf->SetFont($this->fontArialNarrow, '', 10);
+                $pdf->SetFont($this->fontArial, '', 10);
 
-            $htmlTable = '<table border="1" cellpadding="2">';
+                $htmlTable = '<table border="1" cellpadding="2">';
 
-            $rowSpan = count($category->particulars);
+                foreach ($category->particulars ?? [] as $particular) {
+                    $particularName = $particular->particular_name;
+                    $orCount = $particular->or_count;
+                    $orAmountSum = $particular->amount_sum;
+                    $remarks = $particular->remarks;
 
-            foreach ($category->particulars ?? [] as $parKey => $particular) {
-                $particularName = $particular->particular_name;
-                $orCount = $particular->or_count;
-                $orAmountPerTrans = $particular->amount_per_transaction;
-                $orAmountSum = $particular->amount_sum;
+                    $htmlTable .= '<tr>';
+                    $htmlTable .= '
+                    <td
+                        width="43.4%"
+                        align="left"
+                    >'.$particularName.'</td>
+                    <td
+                        width="20.6%"
+                        align="center"
+                    >'.$orCount.'</td>
+                    <td
+                        width="18%"
+                        align="right"
+                    >'.$orAmountSum.'</td>
+                    <td
+                        width="18%"
+                        align="left"
+                    >'.$remarks.'</td>';
+                    $htmlTable .= '</tr>';
+                }
 
-                $htmlTable .= '<tr>';
-                $htmlTable .= ($parKey === 0 ? '
-                <td
-                    width="15%"
-                    align="center"
-                    rowspan="'.$rowSpan.'"
-                    style="font-family:helvetica;font-weight:bold;vertical-align:middle;"
-                >RFU-COR</td>' : '') . '
-                <td
-                    width="27.7%"
-                    align="left"
-                >'.$particularName.'</td>
-                <td
-                    width="15%"
-                    align="right"
-                >'.$orAmountPerTrans.'</td>
-                <td
-                    width="13.6%"
-                    align="center"
-                >'.$orCount.'</td>
-                <td
-                    width="28.7%"
-                    align="right"
-                >'.$orAmountSum.'</td>';
-                $htmlTable .= '</tr>';
+                $htmlTable .= '</table>';
+
+                $pdf->writeHTML($htmlTable, ln: false);
+
+                $tableFooterColor = '#dbe5f1';
+                $htmlTable = '<table border="1" cellpadding="2"><tr>
+                    <td
+                        width="43.4%"
+                        align="center"
+                        style="'."background-color: $tableFooterColor".'"
+                    >TOTAL</td>
+                    <td
+                        width="20.6%"
+                        align="center"
+                        style="'."background-color: $tableFooterColor".'"
+                    >'.$orCountTotal.'</td>
+                    <td
+                        width="18%"
+                        align="right"
+                        style="'."background-color: $tableFooterColor".'"
+                    >'.$totalAmount.'</td>
+                    <td
+                        width="18%"
+                        align="center"
+                        style="'."background-color: $tableFooterColor".'"
+                    ></td>
+                </tr></table>';
+
+                $pdf->SetFont($this->fontArialBold, 'B', 11);
+                $pdf->writeHTML($htmlTable, ln: false);
             }
-
-            $htmlTable .= '</table>';
-
-            $pdf->writeHTML($htmlTable, ln: false);
-
-            $tableFooterColor = '#e3eeda';
-            $htmlTable = '<table border="1" cellpadding="2"><tr>
-                <td
-                    width="15%"
-                    align="center"
-                    style="'."background-color: $tableFooterColor".'"
-                >Sub Total</td>
-                <td
-                    width="27.7%"
-                    align="center"
-                    style="'."background-color: $tableFooterColor".'"
-                ></td>
-                <td
-                    width="15%"
-                    align="center"
-                    style="'."background-color: $tableFooterColor".'"
-                ></td>
-                <td
-                    width="13.6%"
-                    align="center"
-                    style="'."background-color: $tableFooterColor".'"
-                >'.$orCountTotal.'</td>
-                <td
-                    width="28.7%"
-                    align="right"
-                    style="'."background-color: $tableFooterColor".'"
-                >'.$totalAmount.'</td>
-            </tr></table>';
-
-            $pdf->SetFont($this->fontArialNarrowBold, 'B', 16);
-            $pdf->writeHTML($htmlTable, ln: false);
         }
 
         if (count($categories) > 0) {
-            $tableFooterColor = '#e3eeda';
+            $tableFooterColor = '#feff01';
             $htmlTable = '<table border="1" cellpadding="2"><tr>
                 <td
-                    width="57.7%"
+                    width="43.4%"
                     align="left"
                     style="'."background-color: $tableFooterColor".'"
                 >GRAND TOTAL</td>
                 <td
-                    width="13.6%"
+                    width="20.6%"
                     align="center"
                     style="'."background-color: $tableFooterColor".'"
                 >'.$grandOrCountTotal.'</td>
                 <td
-                    width="28.7%"
+                    width="18%"
                     align="right"
                     style="'."background-color: $tableFooterColor".'"
                 >'.$grandTotalAmount.'</td>
+                <td
+                    width="18%"
+                    align="center"
+                    style="'."background-color: $tableFooterColor".'"
+                ></td>
             </tr></table>';
 
-            $pdf->SetFont($this->fontArialNarrowBold, 'B', 16);
+            $pdf->SetFont($this->fontArialBold, 'B', 12);
             $pdf->writeHTML($htmlTable, ln: false);
 
             $pdf->Ln(0.4);
