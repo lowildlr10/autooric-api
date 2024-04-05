@@ -18,7 +18,8 @@ class SignatoryController extends Controller
     public function index()
     {
         // Get all the paper sizes
-        $signatories = Signatory::orderBy('signatory_name')
+        $signatories = Signatory::where('is_active', true)
+            ->orderBy('signatory_name')
             ->get();
 
         foreach ($signatories as $signatory) {
