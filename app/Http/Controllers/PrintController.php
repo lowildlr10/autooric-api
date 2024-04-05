@@ -1390,47 +1390,47 @@ class PrintController extends Controller
                                 ->orWhereIn('cancelled_date', $dates);
                         })
                         ->count();
-                    $orCountNoDiscount = OfficialReceipt::where('nature_collection_id', $particular->id)
-                        ->where(function($query) use($dates) {
-                            $query->whereIn('deposited_date', $dates)
-                                  ->orWhereIn('cancelled_date', $dates);
-                        })
-                        ->whereNull('discount_id')
-                        ->count();
+                    $orCountNoDiscount = '';
                     $orAmountSum = OfficialReceipt::where('nature_collection_id', $particular->id)
                         ->whereIn('deposited_date', $dates)
                         ->whereNull('cancelled_date')
                         ->sum('amount');
-                    $orAmountSumCancelled = OfficialReceipt::where('nature_collection_id', $particular->id)
-                        ->whereIn('cancelled_date', $dates)
-                        ->whereNull('deposited_date')
-                        ->sum('amount');
-                    $orAmountSumNoDiscount = OfficialReceipt::where('nature_collection_id', $particular->id)
-                        ->whereIn('deposited_date', $dates)
-                        ->whereNull('discount_id')
-                        ->whereNull('cancelled_date')
-                        ->sum('amount');
-                    $orAmountSumCancelledNoDiscount = OfficialReceipt::where('nature_collection_id', $particular->id)
-                        ->whereIn('cancelled_date', $dates)
-                        ->whereNull('deposited_date')
-                        ->whereNull('discount_id')
-                        ->sum('amount');
+                    $orAmountSumCancelled = '';
+                    $orAmountSumNoDiscount = '';
+                    $orAmountSumCancelledNoDiscount = '';
                     $orAmountPerTrans = '';
                     $orAmountPerTransNoDiscount = '';
                     $_orCount = '';
                     $_orAmountSum = '';
 
-                    if ($template === 'coa_accounting') {
-                        $_orCount .= (string) $orCount ?? '-';
+                    if ($template === 'coa_accounting' || $particularObj->default_amount > 0) {
+                        $_orCount = (string) $orCount ?? '-';
+                        $orCountNoDiscount = OfficialReceipt::where('nature_collection_id', $particular->id)
+                            ->where(function($query) use($dates) {
+                                $query->whereIn('deposited_date', $dates)
+                                    ->orWhereIn('cancelled_date', $dates);
+                            })
+                            ->whereNull('discount_id')
+                            ->count() ?? '-';
+                        $orAmountSumNoDiscount = OfficialReceipt::where('nature_collection_id', $particular->id)
+                            ->whereIn('deposited_date', $dates)
+                            ->whereNull('discount_id')
+                            ->whereNull('cancelled_date')
+                            ->sum('amount') ?? '-';
+                        $orAmountSumCancelledNoDiscount = OfficialReceipt::where('nature_collection_id', $particular->id)
+                            ->whereIn('cancelled_date', $dates)
+                            ->whereNull('deposited_date')
+                            ->whereNull('discount_id')
+                            ->sum('amount');
+                        $orAmountSumCancelled = OfficialReceipt::where('nature_collection_id', $particular->id)
+                            ->whereIn('cancelled_date', $dates)
+                            ->whereNull('deposited_date')
+                            ->sum('amount');
                         $_orAmountSum = $orAmountSum ? number_format($orAmountSum, 2) : '-';
                         $orAmountPerTrans = number_format($particularObj->default_amount, 2);
                         $orAmountPerTransNoDiscount = number_format($particularObj->default_amount, 2);
                     } else {
                         if ($particularObj->default_amount > 0) {
-                            $_orCount .= (string) $orCount ?? '-';
-                            $_orAmountSum = $orAmountSum ? number_format($orAmountSum, 2) : '-';
-                            $orAmountPerTrans = number_format($particularObj->default_amount, 2);
-                            $orAmountPerTransNoDiscount = number_format($particularObj->default_amount, 2);
                         } else {
                             $_particularObjs = OfficialReceipt::where('nature_collection_id', $particular->id)
                                 ->where(function($query) use($dates) {
@@ -1442,16 +1442,30 @@ class PrintController extends Controller
 
                             foreach ($_particularObjs as $_parKey => $_particularObj) {
                                 $_orCount .= '1';
+                                $orCountNoDiscount .= '1';
                                 $_orAmountSum .= number_format($_particularObj->amount, 2);
                                 $orAmountPerTrans .= number_format($_particularObj->amount, 2);
                                 $orAmountPerTransNoDiscount .= number_format($_particularObj->amount, 2);
+                                $orAmountSumNoDiscount .= number_format($_particularObj->amount, 2);
+
+                                if ($_particularObj->cancelled_date) {
+                                    $orAmountSumCancelledNoDiscount .= number_format($_particularObj->amount, 2);
+                                    $orAmountSumCancelled .= number_format($_particularObj->amount, 2);
+                                } else {
+                                    $orAmountSumCancelledNoDiscount .= '';
+                                    $orAmountSumCancelled .= '';
+                                }
 
                                 if (count($_particularObjs) > 0) {
                                     if ($_parKey >= 0 && $_parKey !== count($_particularObjs) - 1) {
                                         $_orCount .= '<br/>';
+                                        $orCountNoDiscount .= '<br/>';
                                         $_orAmountSum .= '<br/>';
                                         $orAmountPerTrans .= '<br/>';
                                         $orAmountPerTransNoDiscount .= '<br/>';
+                                        $orAmountSumNoDiscount .= '<br/>';
+                                        $orAmountSumCancelledNoDiscount .= '<br/>';
+                                        $orAmountSumCancelled .= '<br/>';
                                     }
                                 }
                             }
@@ -1526,16 +1540,13 @@ class PrintController extends Controller
                         $data['categories'][$catCounter]['particulars'][$parCounter] = [
                             'particular_name' => $particularName,
                             'or_count' => $_orCount,
-                            'or_count_not_discounted' => (string) $orCountNoDiscount ?? '-',
+                            'or_count_not_discounted' => $orCountNoDiscount,
                             'amount_per_transaction' => $orAmountPerTrans,
                             'amount_per_transaction_not_discounted' => $orAmountPerTransNoDiscount,
                             'amount_sum' => $_orAmountSum,
-                            'cancelled_amount_sum' =>
-                                $orAmountSumCancelled ? number_format($orAmountSumCancelled, 2) : '',
-                            'amount_sum_not_discounted' =>
-                                $orAmountSumNoDiscount ? number_format($orAmountSumNoDiscount, 2) : '-',
-                            'cancelled_amount_sum_not_discounted' =>
-                                $orAmountSumCancelledNoDiscount ? number_format($orAmountSumCancelledNoDiscount, 2) : '',
+                            'cancelled_amount_sum' => $orAmountSumCancelled,
+                            'amount_sum_not_discounted' => $orAmountSumNoDiscount,
+                            'cancelled_amount_sum_not_discounted' => $orAmountSumCancelledNoDiscount,
                             'remarks' => '',
                             'discounts' => $particularDiscounts
                         ];
