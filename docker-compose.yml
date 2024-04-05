@@ -1,5 +1,7 @@
+version: '3.9'
 services:
-    autooric_api.test:
+    autooric-api:
+        container_name: autooric-api
         build:
             context: ./vendor/laravel/sail/runtimes/8.3
             dockerfile: Dockerfile
@@ -24,6 +26,7 @@ services:
         depends_on:
             - mysql
     mysql:
+        container_name: mysql
         image: 'mysql:latest'
         ports:
             - '${FORWARD_DB_PORT:-3306}:3306'
@@ -45,6 +48,7 @@ services:
             timeout: 5s
             retries: 3
     phpmyadmin:
+        container_name: phpmyadmin
         image: 'phpmyadmin/phpmyadmin:latest'
         ports:
             - '${FORWARD_PHPMYADMIN_PORT:-8080}:80'
@@ -56,7 +60,7 @@ services:
             - sail
         depends_on:
             - mysql
-            - autooric_api.test
+            - autooric-api
 networks:
     sail:
         driver: bridge
