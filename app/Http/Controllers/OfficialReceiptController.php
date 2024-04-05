@@ -66,7 +66,9 @@ class OfficialReceiptController extends Controller
 
         try {
             // Create a new payor if not exists and get the id
-            $payor = Payor::find($request->payor_id);
+            $payor = Payor::where('id', $request->payor_id)
+                        ->orWhere('payor_name', $request->payor_id)
+                        ->first();
             if (!$payor) {
                 $payor = Payor::create([
                     'payor_name' => $request->payor_id,
@@ -175,6 +177,25 @@ class OfficialReceiptController extends Controller
      */
     public function cancel(Request $request, OfficialReceipt $officialReceipt)
     {
+        if ($officialReceipt->is_cancelled || $officialReceipt->deposit) {
+            $message = "";
+
+            if ($officialReceipt->deposit) {
+                $message = "Official receipt has already been deposited";
+            }
+
+            if ($officialReceipt->is_cancelled) {
+                $message = "Official receipt has been cancelled";
+            }
+
+            return response()->json([
+                'data' => [
+                    'message' => $message,
+                    'error' => 1
+                ]
+            ], 422);
+        }
+
         // Update the official receipt
             $officialReceipt->update([
                 'is_cancelled' => true,
