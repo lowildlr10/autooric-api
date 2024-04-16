@@ -218,4 +218,35 @@ class OfficialReceiptController extends Controller
             ]
         ], 201);
     }
+
+    public function checkDuplicate($orNo) {
+        try {
+            $orCount = OfficialReceipt::where('or_no', $orNo)->count();
+
+            if ($orCount > 0) {
+                return response()->json([
+                    'data' => [
+                        'has_duplicate' => '1',
+                        'message' => 'Official receipt has duplicate',
+                        'success' => 1
+                    ]
+                ], 201);
+            }
+
+            return response()->json([
+                'data' => [
+                    'has_duplicate' => '0',
+                    'message' => 'Official receipt does not have duplicate',
+                    'success' => 1
+                ]
+            ], 201);
+        } catch (\Throwable $th) {
+            return response()->json([
+                'data' => [
+                    'message' => 'Failed to check duplicate.',
+                    'error' => 1
+                ]
+            ], 422);
+        }
+    }
 }

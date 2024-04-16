@@ -350,9 +350,6 @@ class PrintController extends Controller
                     ->count();
 
                 if ($orCount > 0) {
-                    // Main content
-                    $pdf->AddPage();
-
                     $paperWidth = $pdf->getPageWidth() - 0.8;
 
                     foreach ($dates as $date) {
@@ -366,7 +363,11 @@ class PrintController extends Controller
                             })
                             ->orderBy('created_at')
                             ->get();
-                        $orCounter = 0;
+
+                        if (count($officialReceipts) > 0) {
+                            // Main content
+                            $pdf->AddPage();
+                        }
 
                         foreach ($officialReceipts ?? [] as $orKey => $or) {
                             $discount = Discount::find($or->discount_id);
@@ -395,10 +396,12 @@ class PrintController extends Controller
 
                             $pdf->SetY($pdf->getPageHeight() * 0.077);
 
-                            if ($orCounter === 0) {
-                                $pdf->SetX(0.1);
+                            if (($orKey + 1) % 2 === 0) {
+                                //$pdf->SetX(($pdf->getPageWidth() / 2) + 0.02);
+                                $pdf->SetX(($pdf->getPageWidth() / 2) + ($pdf->getPageWidth() * 0.00242));
                             } else {
-                                $pdf->SetX(($pdf->getPageWidth() / 2));
+                                //$pdf->SetX(0.05);
+                                $pdf->SetX($pdf->getPageWidth() * 0.00605);
                             }
 
                             $currentX = $pdf->GetX();
@@ -421,14 +424,10 @@ class PrintController extends Controller
                                 isCancelled: $isCancelled
                             );
 
-                            if ($orCounter === 1) {
-                                $orCounter = 0;
-
-                                if ($orKey !== count($officialReceipts)) {
+                            if (($orKey + 1) % 2 === 0) {
+                                if ($orKey < count($officialReceipts) - 1) {
                                     $pdf->AddPage();
                                 }
-                            } else if ($orCounter === 0) {
-                                $orCounter++;
                             }
                         }
                     }
@@ -743,6 +742,11 @@ class PrintController extends Controller
 
             $pdf->Ln(0.4);
 
+            // Page break
+            if (($pdf->getY() / $pdf->getPageHeight()) * 100 > 85) {
+                $pdf->AddPage();
+            }
+
             $pdf->SetFont($this->fontArial, '', 12);
             $pdf->Cell($paperWidthWithMargin / 3, 0, 'Prepared by:', 0, 0, 'L');
             $pdf->Cell($paperWidthWithMargin / 3.5, 0, '', 0, 0, 'L');
@@ -760,6 +764,11 @@ class PrintController extends Controller
             $pdf->Cell(0, 0, $certifiedCorrectDesignation, 0, 1, 'L');
 
             $pdf->Ln(0.5);
+
+            // Page break
+            if (($pdf->getY() / $pdf->getPageHeight()) * 100 > 85) {
+                $pdf->AddPage();
+            }
 
             $pdf->Cell($paperWidthWithMargin / 3, 0, '', 0, 0, 'L');
             $pdf->Cell($paperWidthWithMargin / 3, 0, 'Noted by:', 0, 0, 'L');
@@ -997,6 +1006,11 @@ class PrintController extends Controller
 
             $pdf->Ln(0.4);
 
+            // Page break
+            if (($pdf->getY() / $pdf->getPageHeight()) * 100 > 85) {
+                $pdf->AddPage();
+            }
+
             $pdf->SetFont($this->fontArial, '', 12);
             $pdf->Cell($paperWidthWithMargin / 3, 0, 'Prepared by:', 0, 0, 'L');
             $pdf->Cell($paperWidthWithMargin / 3.5, 0, '', 0, 0, 'L');
@@ -1014,6 +1028,11 @@ class PrintController extends Controller
             $pdf->Cell(0, 0, $certifiedCorrectDesignation, 0, 1, 'L');
 
             $pdf->Ln(0.5);
+
+            // Page break
+            if (($pdf->getY() / $pdf->getPageHeight()) * 100 > 85) {
+                $pdf->AddPage();
+            }
 
             $pdf->Cell($paperWidthWithMargin / 3, 0, '', 0, 0, 'L');
             $pdf->Cell($paperWidthWithMargin / 3, 0, 'Noted by:', 0, 0, 'L');
@@ -1050,7 +1069,7 @@ class PrintController extends Controller
 
     private function printReportCollectionCoaAccounting(
         $printData
-    ) : JsonResponse
+    )
     {
         $printData = json_decode($printData);
         $categories = $printData->categories ?? [];
@@ -1241,6 +1260,11 @@ class PrintController extends Controller
 
             $pdf->Ln(0.4);
 
+            // Page break
+            if (($pdf->getY() / $pdf->getPageHeight()) * 100 > 85) {
+                $pdf->AddPage();
+            }
+
             $pdf->SetFont($this->fontArial, '', 12);
             $pdf->Cell($paperWidthWithMargin / 3, 0, 'Prepared by:', 0, 0, 'L');
             $pdf->Cell($paperWidthWithMargin / 3.5, 0, '', 0, 0, 'L');
@@ -1258,6 +1282,11 @@ class PrintController extends Controller
             $pdf->Cell(0, 0, $certifiedCorrectDesignation, 0, 1, 'L');
 
             $pdf->Ln(0.5);
+
+            // Page break
+            if (($pdf->getY() / $pdf->getPageHeight()) * 100 > 85) {
+                $pdf->AddPage();
+            }
 
             $pdf->Cell($paperWidthWithMargin / 3, 0, '', 0, 0, 'L');
             $pdf->Cell($paperWidthWithMargin / 3, 0, 'Noted by:', 0, 0, 'L');
@@ -1877,6 +1906,11 @@ class PrintController extends Controller
 
                     $pdf->Ln(0.1);
 
+                    // Page break
+                    if (($pdf->getY() / $pdf->getPageHeight()) * 100 > 77) {
+                        $pdf->AddPage();
+                    }
+
                     $pdf->SetFont($this->fontArialBold, 'B', 12);
                     $pdf->Cell(0, 0.3, 'C E R T I F I C A T I O N', 'LTR', 1, 'C');
                     $pdf->Cell(0, 0.2, '', 'LR', 1, 'C');
@@ -1893,7 +1927,13 @@ class PrintController extends Controller
                     $pdf->MultiCell(0, 1, '', 'R', 'L', 0, 1);
                     $pdf->SetFont($this->fontArialBold, 'B', 12);
                     $pdf->Cell(0, 0.7, strtoupper("$position $fullName              "), 'LBR', 1, 'R');
+
                     $pdf->Ln(0.7);
+
+                    // Page break
+                    if (($pdf->getY() / $pdf->getPageHeight()) * 100 > 85) {
+                        $pdf->AddPage();
+                    }
 
                     $pdf->SetFont($this->fontArial, '', 12);
                     $pdf->Cell($paperWidth * 0.04, 0, "", 0, 0, 'L');
@@ -1946,10 +1986,15 @@ class PrintController extends Controller
     ) : void
     {
         if ($hasTemplate) {
-            $pdf->Image('images/or-template-2.jpg', $x, $y, $w, $h, 'JPEG');
+            $pdf->Image('images/or-template-blue.jpg', $x, $y, $w, $h, 'JPEG');
         }
 
-        $pdf->SetTextColor(50, 50, 50);
+        if ($hasTemplate) {
+            $pdf->SetTextColor(0,110,195);
+        } else {
+            $pdf->SetTextColor(50, 50, 50);
+        }
+
         $pdf->SetFont('helvetica', 'B', 13);
 
         // Generate a cell
@@ -1957,11 +2002,22 @@ class PrintController extends Controller
         $pdf->Cell(1.6, 0, $orDate, 0, 0, 'R');
         $pdf->Cell(0.5, 0, '', 0, 0, 'L');
         $pdf->SetFont('helvetica', 'B', 18.5);
-        $pdf->SetTextColor(188,113,136);
+
+        if ($hasTemplate) {
+            $pdf->SetTextColor(0,110,195);
+        } else {
+            $pdf->SetTextColor(188,113,136);
+        }
+
         $pdf->SetXY($x + 2.45, $y + 1.65);
         $pdf->Cell(1.4, 0, $hasTemplate ? $orNo : '', 0, 1, 'L');
 
-        $pdf->SetTextColor(50, 50, 50);
+        if ($hasTemplate) {
+            $pdf->SetTextColor(0,110,195);
+        } else {
+            $pdf->SetTextColor(50, 50, 50);
+        }
+
         $pdf->SetFont('helvetica', 'B', 12);
 
         $pdf->SetXY($x+ 0.28, $y + 2.32);
@@ -1982,7 +2038,7 @@ class PrintController extends Controller
         $pdf->SetFont('helvetica', 'B', 11);
         $pdf->MultiCell(2, 2.2, $amount, 0, 'R', 0, 1);
 
-        $pdf->SetXY($x + 0.25, $y + 5.18);
+        $pdf->SetXY($x + 0.25, $y + 5.19);
         $pdf->Cell(1.6, 0, '', 0, 0, 'L');
         $pdf->Cell(2, 0, $amount, 0, 1, 'R');
 
@@ -1995,11 +2051,11 @@ class PrintController extends Controller
 
         switch ($paymentMode) {
             case 'cash':
-                $pdf->SetXY($x + 0.3, $y + 6.02);
+                $pdf->SetXY($x + 0.3, $y + 6.04);
                 $pdf->Cell(1.6, 0, '4', 0, 1, 'L');
                 break;
             case 'check':
-                $pdf->SetXY($x + 0.3, $y + 6.222);
+                $pdf->SetXY($x + 0.3, $y + 6.23);
                 $pdf->Cell(1.35, 0, '4', 0, 1, 'L');
 
                 $pdf->SetXY($x + 1.6, $y + 6.28);
@@ -2009,7 +2065,7 @@ class PrintController extends Controller
                 $pdf->MultiCell(0.84, 0, $checkDate, 0, 'L');
                 break;
             case 'money_order':
-                $pdf->SetXY($x + 0.3, $y + 6.422);
+                $pdf->SetXY($x + 0.3, $y + 6.43);
                 $pdf->Cell(1.6, 0, '4', 0, 1, 'L');
                 break;
             default:
@@ -2018,7 +2074,7 @@ class PrintController extends Controller
 
         $pdf->SetFont('helvetica', 'B', 9);
 
-        $pdf->SetXY($x + 0.25, $y + 7.19);
+        $pdf->SetXY($x + 0.25, $y + 7.21);
         $pdf->Cell(1.85, 0, '', 0, 0, 'L');
         $pdf->Cell(1.75, 0, $personnelName, 0, 1, 'C');
 
