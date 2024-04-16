@@ -48,6 +48,8 @@ Route::group([
             ->name('official-receipts.deposit');
         Route::patch('/official-receipts/{official_receipt}/cancel', [OfficialReceiptController::class, 'cancel'])
             ->name('official-receipts.cancel');
+        Route::get('/official-receipts/check-duplicate/{orNo}', [OfficialReceiptController::class, 'checkDuplicate'])
+            ->name('official-receipts.check_duplicate');
 
         // Route api for categories
         Route::apiResource('/categories', 'App\Http\Controllers\CategoryController');
@@ -101,6 +103,6 @@ Route::group([
             ->only('index');
 
         // Print api routes
-        Route::get('/print/{printType}', [PrintController::class, 'index'])->name('print.index');
+        Route::post('/print/{printType}', [PrintController::class, 'index'])->name('print.index');
     });
 });
