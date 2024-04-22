@@ -4,7 +4,7 @@ namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class UpdateOfficialReceiptDepositRequest extends FormRequest
+class UpdateOfficialReceiptRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -23,8 +23,22 @@ class UpdateOfficialReceiptDepositRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'deposited_date' => 'required|string',
-            'deposit' => 'required|numeric'
+            // Validate the request
+            'cancelled_date' => 'date|nullable',
+            'deposited_date' => 'date|nullable',
+            'receipt_date' => 'required|date',
+            'or_no' => 'required',
+            'payor_id' => 'required',
+            'nature_collection_id' => 'required',
+            'amount' => 'required',
+            'discount_id' => 'nullable',
+            'deposit' => 'nullable',
+            'amount_words' => 'required',
+            'card_no' => 'nullable',
+            'payment_mode' => 'required',
+            'drawee_bank' => 'nullable',
+            'check_no' => 'nullable',
+            'check_date' => 'nullable',
         ];
     }
 
