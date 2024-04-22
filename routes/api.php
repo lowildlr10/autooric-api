@@ -43,7 +43,7 @@ Route::group([
 
         // Route api for official receipt
         Route::apiResource('/official-receipts', 'App\Http\Controllers\OfficialReceiptController')
-            ->except(['create', 'edit', 'update', 'destroy']);
+            ->except(['create', 'edit', 'destroy']);
         Route::patch('/official-receipts/{official_receipt}/deposit', [OfficialReceiptController::class, 'deposit'])
             ->name('official-receipts.deposit');
         Route::patch('/official-receipts/{official_receipt}/cancel', [OfficialReceiptController::class, 'cancel'])

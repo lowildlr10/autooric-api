@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\OfficialReceipt;
 use App\Models\Payor;
 use App\Http\Requests\StoreOfficialReceiptRequest;
+use App\Http\Requests\UpdateOfficialReceiptRequest;
 use App\Http\Requests\UpdateOfficialReceiptDepositRequest;
 use Illuminate\Http\Request;
 use Illuminate\Database\Eloquent\Builder;
@@ -124,6 +125,67 @@ class OfficialReceiptController extends Controller
     /**
      * Update the specified resource in storage.
      */
+    public function update(UpdateOfficialReceiptRequest $request, OfficialReceipt $officialReceipt)
+    {
+        // Validate the request
+        $request->validated();
+
+        try {
+            // Create a new payor if not exists and get the id
+            $payor = Payor::where('id', $request->payor_id)
+                        ->orWhere('payor_name', $request->payor_id)
+                        ->first();
+            if (!$payor) {
+                $payor = Payor::create([
+                    'payor_name' => $request->payor_id,
+                ]);
+            }
+
+            $data = [
+                'receipt_date' => date('Y-m-d', strtotime($request->receipt_date)),
+                'or_no' => $request->or_no,
+                'payor_id' => $payor->id,
+                'nature_collection_id' => $request->nature_collection_id,
+                'amount' => $request->amount,
+                'discount_id' => $request->discount_id,
+                'card_no' => $request->card_no,
+                'amount_words' => $request->amount_words,
+                'payment_mode' => $request->payment_mode,
+                'drawee_bank' => $request->drawee_bank,
+                'check_no' => $request->check_no,
+                'check_date' => date('Y-m-d', strtotime($request->check_date))
+            ];
+
+            if ($officialReceipt->deposited_date) {
+                $data = [...$data, 'deposited_date' => date('Y-m-d', strtotime($officialReceipt->deposited_date))];
+            }
+            if ($officialReceipt->cancelled_date) {
+                $data = [...$data, 'cancelled_date' => date('Y-m-d', strtotime($officialReceipt->cancelled_date))];
+            }
+
+            // Update official receipt
+            $officialReceipt->update($data);
+        } catch (\Throwable $th) {
+            return response()->json([
+                'data' => [
+                    'message' => 'Failed to update official receipt',
+                    'error' => 1
+                ]
+            ], 422);
+        }
+
+        return response()->json([
+            'data' => [
+                'data' => $request->all(),
+                'message' => 'Official receipt updated successfully',
+                'success' => 1
+            ]
+        ], 201);
+    }
+
+    /**
+     * Update the specified resource in storage.
+     */
     public function deposit(UpdateOfficialReceiptDepositRequest $request, OfficialReceipt $officialReceipt)
     {
         // Validate the request
@@ -151,7 +213,7 @@ class OfficialReceiptController extends Controller
         try {
             // Update the official receipt
             $officialReceipt->update([
-                'deposited_date' => now(),
+                'deposited_date' => $request->deposited_date,
                 'deposit' => $request->deposit,
                 'deposited_by_id' => $request->user()->id,
             ]);
