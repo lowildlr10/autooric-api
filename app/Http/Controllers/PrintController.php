@@ -22,12 +22,12 @@ class PrintController extends Controller
 {
     public function __construct()
     {
-        $this->fontArial = TCPDF_FONTS::addTTFfont(public_path('fonts/arial.ttf'), 'TrueTypeUnicode', '', 96);
-        $this->fontArialBold = TCPDF_FONTS::addTTFfont(public_path('fonts/arialbd.ttf'), 'TrueTypeUnicode', '', 96);
-        $this->fontArialItalic = TCPDF_FONTS::addTTFfont(public_path('fonts/ariali.ttf'), 'TrueTypeUnicode', '', 96);
-        $this->fontArialBoldItalic = TCPDF_FONTS::addTTFfont(public_path('fonts/arialbi.ttf'), 'TrueTypeUnicode', '', 96);
-        $this->fontArialNarrow = TCPDF_FONTS::addTTFfont(public_path('fonts/arialn.ttf'), 'TrueTypeUnicode', '', 96);
-        $this->fontArialNarrowBold = TCPDF_FONTS::addTTFfont(public_path('fonts/arialnb.ttf'), 'TrueTypeUnicode', '', 96);
+        $this->fontArial = TCPDF_FONTS::addTTFfont('fonts/arial.ttf', 'TrueTypeUnicode', '', 96);
+        $this->fontArialBold = TCPDF_FONTS::addTTFfont('fonts/arialbd.ttf', 'TrueTypeUnicode', '', 96);
+        $this->fontArialItalic = TCPDF_FONTS::addTTFfont('fonts/ariali.ttf', 'TrueTypeUnicode', '', 96);
+        $this->fontArialBoldItalic = TCPDF_FONTS::addTTFfont('fonts/arialbi.ttf', 'TrueTypeUnicode', '', 96);
+        $this->fontArialNarrow = TCPDF_FONTS::addTTFfont('fonts/arialn.ttf', 'TrueTypeUnicode', '', 96);
+        $this->fontArialNarrowBold = TCPDF_FONTS::addTTFfont('fonts/arialnb.ttf', 'TrueTypeUnicode', '', 96);
     }
 
     /**
