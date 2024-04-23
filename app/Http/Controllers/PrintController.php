@@ -1921,7 +1921,7 @@ class PrintController extends Controller
                         "collections and deposits had by me in my capacity as Collecting Officer of Regional\n".
                         "Finance Unit Cordillera during the period from <strong>$certDate</strong> inclusives, as\n".
                         "indicated in the corresponding columns.",
-                        0, 'L', 0, 0,
+                        0, 'J', 0, 0,
                         ishtml: true
                     );
                     $pdf->MultiCell(0, 1, '', 'R', 'L', 0, 1);
