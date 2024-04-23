@@ -88,9 +88,10 @@ class OfficialReceiptController extends Controller
                 'card_no' => $request->card_no,
                 'amount_words' => $request->amount_words,
                 'payment_mode' => $request->payment_mode,
-                'drawee_bank' => $request->drawee_bank,
-                'check_no' => $request->check_no,
-                'check_date' => $request->check_date
+                'drawee_bank' => $request->drawee_bank ?? null,
+                'check_no' => $request->check_no ?? null,
+                'check_date' =>
+                    $request->check_date ? date('Y-m-d', strtotime($request->check_date)) : null
             ]);
         } catch (\Throwable $th) {
             return response()->json([
@@ -151,16 +152,17 @@ class OfficialReceiptController extends Controller
                 'card_no' => $request->card_no,
                 'amount_words' => $request->amount_words,
                 'payment_mode' => $request->payment_mode,
-                'drawee_bank' => $request->drawee_bank,
-                'check_no' => $request->check_no,
-                'check_date' => date('Y-m-d', strtotime($request->check_date))
+                'drawee_bank' => $request->drawee_bank ?? null,
+                'check_no' => $request->check_no ?? null,
+                'check_date' =>
+                    $request->check_date ? date('Y-m-d', strtotime($request->check_date)) : null
             ];
 
-            if ($officialReceipt->deposited_date) {
-                $data = [...$data, 'deposited_date' => date('Y-m-d', strtotime($officialReceipt->deposited_date))];
+            if ($officialReceipt->deposited_date && $request->deposited_date) {
+                $data = [...$data, 'deposited_date' => date('Y-m-d', strtotime($request->deposited_date))];
             }
-            if ($officialReceipt->cancelled_date) {
-                $data = [...$data, 'cancelled_date' => date('Y-m-d', strtotime($officialReceipt->cancelled_date))];
+            if ($officialReceipt->cancelled_date && $request->cancelled_date) {
+                $data = [...$data, 'cancelled_date' => date('Y-m-d', strtotime($request->cancelled_date))];
             }
 
             // Update official receipt
@@ -176,7 +178,7 @@ class OfficialReceiptController extends Controller
 
         return response()->json([
             'data' => [
-                'data' => $request->all(),
+                'data' => $data,
                 'message' => 'Official receipt updated successfully',
                 'success' => 1
             ]
