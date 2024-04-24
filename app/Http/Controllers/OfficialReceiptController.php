@@ -178,7 +178,11 @@ class OfficialReceiptController extends Controller
 
         return response()->json([
             'data' => [
-                'data' => $data,
+                'data' => $officialReceipt->load([
+                    'natureCollection:id,particular_name',
+                    'payor:id,payor_name',
+                    'discount:id,discount_name,percent,requires_card_no',
+                ]),
                 'message' => 'Official receipt updated successfully',
                 'success' => 1
             ]
