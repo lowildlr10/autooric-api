@@ -9,6 +9,7 @@ use App\Http\Requests\UpdateOfficialReceiptRequest;
 use App\Http\Requests\UpdateOfficialReceiptDepositRequest;
 use Illuminate\Http\Request;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\DB;
 
 class OfficialReceiptController extends Controller
 {
@@ -264,12 +265,13 @@ class OfficialReceiptController extends Controller
             ], 422);
         }
 
-        // Update the official receipt
+        try {
+            // Update the official receipt
             $officialReceipt->update([
                 'is_cancelled' => true,
                 'cancelled_date' => now(),
                 'cancelled_by_id' => $request->user()->id,
-            ]);try {
+            ]);
         } catch (\Throwable $th) {
             return response()->json([
                 'data' => [
@@ -282,6 +284,69 @@ class OfficialReceiptController extends Controller
         return response()->json([
             'data' => [
                 'message' => 'Official receipt has been cancelled',
+                'success' => 1
+            ]
+        ], 201);
+    }
+
+    /**
+     * Clear the OR status from storage.
+     */
+    public function revertStatus(OfficialReceipt $officialReceipt)
+    {
+        if ($officialReceipt->is_cancelled || $officialReceipt->deposit) {
+            try {
+                // Update the official receipt
+                // $officialReceipt->update([
+                //     'deposited_by_id ' => null,
+                //     'deposited_date' => null,
+                //     'deposit' => null,
+                //     'is_cancelled' => false,
+                //     'cancelled_date' => null,
+                //     'cancelled_by_id' => null,
+                // ]);
+
+                DB::table('official_receipts')
+                    ->where('id', $officialReceipt->id)
+                    ->update([
+                        'deposited_by_id' => null,
+                        'deposited_date' => null,
+                        'deposit' => null,
+                        'is_cancelled' => false,
+                        'cancelled_date' => null,
+                        'cancelled_by_id' => null,
+                    ]);
+            } catch (\Throwable $th) {
+                return response()->json([
+                    'data' => [
+                        'message' => 'Unable to return to pending status for the official receipt',
+                        'error' => 1
+                    ]
+                ], 422);
+            }
+        } else {
+            $message = "";
+
+            if (!$officialReceipt->deposit) {
+                $message = "The official receipt has not been processed for deposit";
+            }
+
+            if (!$officialReceipt->is_cancelled) {
+                $message = "The official receipt has not been processed for cancel";
+            }
+
+            return response()->json([
+                'data' => [
+                    'message' => $message,
+                    'error' => 1
+                ]
+            ], 422);
+        }
+
+        return response()->json([
+            'data' => [
+                'data' => $officialReceipt,
+                'message' => 'Official receipt has been reverted back to pending',
                 'success' => 1
             ]
         ], 201);
