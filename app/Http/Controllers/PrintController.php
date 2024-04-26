@@ -337,8 +337,10 @@ class PrintController extends Controller
         $pdf->setPrintHeader(false);
         $pdf->setPrintFooter(false);
 
+        $orData = [];
+
         foreach ($categories as $category) {
-            foreach ($category->particulars ?? [] as $particular) {
+            foreach ($category->particulars ?? [] as $parKey => $particular) {
                 $orCount = OfficialReceipt::with([
                         'payor', 'natureCollection', 'discount'
                     ])
@@ -350,8 +352,6 @@ class PrintController extends Controller
                     ->count();
 
                 if ($orCount > 0) {
-                    $paperWidth = $pdf->getPageWidth() - 0.8;
-
                     foreach ($dates as $date) {
                         $officialReceipts = OfficialReceipt::with([
                                 'payor', 'natureCollection', 'discount'
@@ -363,11 +363,6 @@ class PrintController extends Controller
                             })
                             ->orderBy('created_at')
                             ->get();
-
-                        if (count($officialReceipts) > 0) {
-                            // Main content
-                            $pdf->AddPage();
-                        }
 
                         foreach ($officialReceipts ?? [] as $orKey => $or) {
                             $discount = Discount::find($or->discount_id);
@@ -394,43 +389,68 @@ class PrintController extends Controller
                                 date('m/d/Y', strtotime($or->check_date)) : '';
                             $isCancelled = !!$or->cancelled_date;
 
-                            $pdf->SetY($pdf->getPageHeight() * 0.077);
-
-                            if (($orKey + 1) % 2 === 0) {
-                                //$pdf->SetX(($pdf->getPageWidth() / 2) + 0.02);
-                                $pdf->SetX(($pdf->getPageWidth() / 2) + ($pdf->getPageWidth() * 0.00242));
-                            } else {
-                                //$pdf->SetX(0.05);
-                                $pdf->SetX($pdf->getPageWidth() * 0.00605);
-                            }
-
-                            $currentX = $pdf->GetX();
-                            $currentY = $pdf->GetY();
-
-                            $this->generateOfficialReceiptSegment(
-                                $pdf, $currentX, $currentY, $orDimension[1], $orDimension[0],
-                                hasTemplate: true,
-                                orDate: $orDate,
-                                orNo: $orNo,
-                                payorName: $payorName,
-                                natureCollection: $natureCollection,
-                                amount: $amount,
-                                amountInWords: $amountInWords,
-                                paymentMode: $paymentMode,
-                                draweeBank: $draweeBank,
-                                checkNo: $checkNo,
-                                checkDate: $checkDate,
-                                personnelName: $personnelName,
-                                isCancelled: $isCancelled
-                            );
-
-                            if (($orKey + 1) % 2 === 0) {
-                                if ($orKey < count($officialReceipts) - 1) {
-                                    $pdf->AddPage();
-                                }
-                            }
+                            $orData[$particular->id][] = (Object) [
+                                'orDate'            => $orDate,
+                                'orNo'              => $orNo,
+                                'payorName'         => $payorName,
+                                'natureCollection'  => $natureCollection,
+                                'amount'            => $amount,
+                                'amountInWords'     => $amountInWords,
+                                'paymentMode'       => $paymentMode,
+                                'draweeBank'        => $draweeBank,
+                                'checkNo'           => $checkNo,
+                                'checkDate'         => $checkDate,
+                                'personnelName'     => $personnelName,
+                                'isCancelled'       => $isCancelled
+                            ];
                         }
                     }
+                }
+            }
+        }
+
+        foreach ($orData as $ors) {
+
+            // Main Page
+            $pdf->AddPage();
+
+            $columnCounter = 1;
+
+            foreach ($ors as $orKey => $or) {
+                $pdf->SetY($pdf->getPageHeight() * 0.077);
+
+                if ($columnCounter === 2) {
+                    $pdf->SetX(($pdf->getPageWidth() / 2) + ($pdf->getPageWidth() * 0.00242));
+                } else if ($columnCounter === 1) {
+                    $pdf->SetX($pdf->getPageWidth() * 0.00605);
+                }
+
+                $currentX = $pdf->GetX();
+                $currentY = $pdf->GetY();
+
+                $this->generateOfficialReceiptSegment(
+                    $pdf, $currentX, $currentY, $orDimension[1], $orDimension[0],
+                    hasTemplate: true,
+                    orDate: $or->orDate,
+                    orNo: $or->orNo,
+                    payorName: $or->payorName,
+                    natureCollection: $or->natureCollection,
+                    amount: $or->amount,
+                    amountInWords: $or->amountInWords,
+                    paymentMode: $or->paymentMode,
+                    draweeBank: $or->draweeBank,
+                    checkNo: $or->checkNo,
+                    checkDate: $or->checkDate,
+                    personnelName: $or->personnelName,
+                    isCancelled: $or->isCancelled
+                );
+
+                if ($columnCounter === 2) {
+                    if ($orKey < count($ors) - 1) $pdf->AddPage();
+
+                    $columnCounter = 1;
+                } else if ($columnCounter === 1) {
+                    $columnCounter++;
                 }
             }
         }
@@ -442,6 +462,7 @@ class PrintController extends Controller
             'data' => [
                 'filename' => $filename,
                 'pdf' => $pdfBase64,
+                'data' => $orData,
                 'success' => 1
             ]
         ], 201)
@@ -2018,7 +2039,7 @@ class PrintController extends Controller
             $pdf->SetTextColor(50, 50, 50);
         }
 
-        $pdf->SetFont('helvetica', 'B', 12);
+        $pdf->SetFont('helvetica', 'B', strlen($payorName) > 24 ? 9.5 : 12);
 
         $pdf->SetXY($x+ 0.28, $y + 2.32);
         $pdf->Cell(2.6, 0, $payorName, 0, 0, 'L');
@@ -2044,18 +2065,18 @@ class PrintController extends Controller
 
         $pdf->SetFont('helvetica', 'B', strlen($amountInWords) >= 35 ? 8 : 11);
 
-        $pdf->SetXY($x + 0.25, $y + (strlen($amountInWords) >= 35 ? 5.6 : 5.64));
+        $pdf->SetXY($x + 0.25, $y + (strlen($amountInWords) >= 35 ? 5.62 : 5.66));
         $pdf->MultiCell(3.6, 0, $amountInWords, 0, 'L', 0, 1);
 
         $pdf->SetFont('zapfdingbats', '', 12);
 
         switch ($paymentMode) {
             case 'cash':
-                $pdf->SetXY($x + 0.3, $y + 6.04);
+                $pdf->SetXY($x + 0.29, $y + 6.04);
                 $pdf->Cell(1.6, 0, '4', 0, 1, 'L');
                 break;
             case 'check':
-                $pdf->SetXY($x + 0.3, $y + 6.23);
+                $pdf->SetXY($x + 0.29, $y + 6.24);
                 $pdf->Cell(1.35, 0, '4', 0, 1, 'L');
 
                 $pdf->SetXY($x + 1.6, $y + 6.28);
@@ -2065,7 +2086,7 @@ class PrintController extends Controller
                 $pdf->MultiCell(0.84, 0, $checkDate, 0, 'L');
                 break;
             case 'money_order':
-                $pdf->SetXY($x + 0.3, $y + 6.43);
+                $pdf->SetXY($x + 0.29, $y + 6.44);
                 $pdf->Cell(1.6, 0, '4', 0, 1, 'L');
                 break;
             default:
@@ -2074,7 +2095,7 @@ class PrintController extends Controller
 
         $pdf->SetFont('helvetica', 'B', 9);
 
-        $pdf->SetXY($x + 0.25, $y + 7.21);
+        $pdf->SetXY($x + 0.25, $y + 7.22);
         $pdf->Cell(1.85, 0, '', 0, 0, 'L');
         $pdf->Cell(1.75, 0, $personnelName, 0, 1, 'C');
 
