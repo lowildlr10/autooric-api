@@ -48,6 +48,8 @@ Route::group([
             ->name('official-receipts.deposit');
         Route::patch('/official-receipts/{official_receipt}/cancel', [OfficialReceiptController::class, 'cancel'])
             ->name('official-receipts.cancel');
+        Route::patch('/official-receipts/{official_receipt}/revert-status', [OfficialReceiptController::class, 'revertStatus'])
+            ->name('official-receipts.revert-status');
         Route::get('/official-receipts/check-duplicate/{orNo}', [OfficialReceiptController::class, 'checkDuplicate'])
             ->name('official-receipts.check_duplicate');
 
