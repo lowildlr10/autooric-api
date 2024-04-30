@@ -1501,6 +1501,7 @@ class PrintController extends Controller
                         $_orAmountSum = $orAmountSum ? number_format($orAmountSum, 2) : '-';
                         $orAmountPerTrans = number_format($particularObj->default_amount, 2);
                         $orAmountPerTransNoDiscount = number_format($particularObj->default_amount, 2);
+                        $orAmountSumNoDiscount = number_format($orAmountSumNoDiscount, 2);
                     } else {
                         if ($particularObj->default_amount > 0) {
                         } else {
