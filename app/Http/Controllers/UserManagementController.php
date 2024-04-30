@@ -8,6 +8,9 @@ use App\Models\Position;
 use App\Models\Designation;
 use App\Models\Station;
 use App\Services\UserLogsServices;
+use Illuminate\Support\Facades\Storage;
+use Intervention\Image\Laravel\Facades\Image;
+use Intervention\Image\Drivers\Gd\Driver;
 
 class UserManagementController extends Controller
 {
@@ -89,7 +92,7 @@ class UserManagementController extends Controller
         // Validate the request
         $validated = $request->validate([
             'first_name' => 'required',
-            'middle_name' => 'nullable',
+            'middle_name' => 'nullable|string',
             'last_name' => 'required',
             'email' => 'email|unique:users|nullable',
             'phone' => 'unique:users|nullable',
@@ -99,6 +102,7 @@ class UserManagementController extends Controller
             'username' => 'required|unique:users',
             'password' => 'required|min:6',
             'role' => 'required',
+            'esig' => 'nullable|string',
             'is_active' => 'required|boolean'
         ]);
 
@@ -134,9 +138,16 @@ class UserManagementController extends Controller
                     'position_id' => $position->id,
                     'designation_id' => $designation->id,
                     'station_id' => $station->id,
+                    'esig' => null,
                     'password' => bcrypt($request->password)
                 ]
             ));
+
+            if ($request->esig && !empty($request->esig)) {
+                $esig = $this->processAndSaveImage($request->esig, $user->id);
+                $user->esig = $esig;
+                $user->save();
+            }
         } catch (\Throwable $th) {
             return response()->json([
                 'data' => [
@@ -192,16 +203,17 @@ class UserManagementController extends Controller
 
         // Validate the request
         $validated = $request->validate([
-            'first_name' => 'required',
-            'middle_name' => '',
-            'last_name' => 'required',
+            'first_name' => 'required|string',
+            'middle_name' => 'nullable|string',
+            'last_name' => 'required|string',
             'email' => 'email|nullable',
-            'phone' => 'nullable',
-            'position_id' => 'required',
-            'designation_id' => 'required',
-            'station_id' => 'required',
-            'username' => 'required',
-            'role' => 'required',
+            'phone' => 'nullable|string',
+            'position_id' => 'required|string',
+            'designation_id' => 'required|string',
+            'station_id' => 'required|string',
+            'username' => 'required|string',
+            'role' => 'required|string',
+            'esig' => 'nullable|string',
             'is_active' => 'required|boolean',
             'password' => ''
         ]);
@@ -234,6 +246,16 @@ class UserManagementController extends Controller
             // Update a user
             $user = User::find($id);
 
+            if ($request->esig !== $user->esig && !empty($request->esig)) {
+                $esig = $this->processAndSaveImage($request->esig, $id);
+            } else {
+                if (!empty($request->esig)) {
+                    $esig = $request->esig;
+                } else {
+                    $esig = null;
+                }
+            }
+
             if (trim($request->password)) {
                 $user->update(array_merge(
                     $validated,
@@ -241,6 +263,7 @@ class UserManagementController extends Controller
                         'position_id' => $position->id,
                         'designation_id' => $designation->id,
                         'station_id' => $station->id,
+                        'esig' => $esig,
                         'password' => bcrypt(trim($request->password))
                     ]
                 ));
@@ -256,6 +279,7 @@ class UserManagementController extends Controller
                     'station_id' => $station->id,
                     'username' => $validated['username'],
                     'role' => $validated['role'],
+                    'esig' => $esig,
                     'is_active' => $validated['is_active']
                 ]);
             }
@@ -323,5 +347,26 @@ class UserManagementController extends Controller
                 'success' => 1
             ]
         ], 201);
+    }
+
+    private function processAndSaveImage($base64Data, $imageName)
+    {
+        $appUrl = env('APP_URL') ?? 'http://localhost';
+
+        $width = 100;
+        $image = Image::read($base64Data)->scale($width);
+
+        $filename = "$imageName.png";
+        $directory = 'public/images/esig';
+        $publicPath = "$appUrl/storage/images/esig/$filename";
+
+        if (!Storage::exists($directory)) {
+            Storage::makeDirectory($directory);
+        }
+
+        $image->encodeByExtension('png', progressive: true, quality: 10)
+            ->save(public_path("storage/images/esig/$filename"));
+
+        return $publicPath;
     }
 }

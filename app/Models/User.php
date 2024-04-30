@@ -31,6 +31,7 @@ class User extends Authenticatable
         'username',
         'password',
         'role',
+        'esig',
         'is_active'
     ];
 
