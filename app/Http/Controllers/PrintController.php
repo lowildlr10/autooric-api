@@ -582,7 +582,9 @@ class PrintController extends Controller
                 $orCount = $particular->or_count_not_discounted;
                 $orAmountPerTrans = $particular->amount_per_transaction_not_discounted;
                 $orAmountSum = $particular->amount_sum_not_discounted;
-                $orAmountCancelledSum = $particular->cancelled_amount_sum_not_discounted;
+                $orAmountCancelledSum =
+                    $particular->cancelled_amount_sum_not_discounted === 0 ? '' :
+                    number_format($particular->cancelled_amount_sum_not_discounted, 2);
 
                 $htmlTable .= '<tr>';
                 $htmlTable .= '
@@ -621,7 +623,7 @@ class PrintController extends Controller
                     <td
                         width="21.1%"
                         align="left"
-                        style="font-size:11px;"
+                        style="font-size:10px;"
                     >'.$label.'</td>
                     <td
                         width="28.67%"
