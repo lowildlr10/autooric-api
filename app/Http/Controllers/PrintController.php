@@ -2145,7 +2145,7 @@ class PrintController extends Controller
             $pdf->Image(
                 $esig,
                 $x + 2.4,
-                $pdf->GetY() - 0.5,
+                $pdf->GetY() - 0.6,
                 w: 1,
                 type: 'PNG',
                 resize: true,
