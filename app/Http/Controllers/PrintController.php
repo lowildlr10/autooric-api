@@ -13,6 +13,7 @@ use App\Models\PaperSize;
 use App\Models\Position;
 use App\Models\Signatory;
 use App\Models\Station;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use PhpParser\Node\Expr\Cast\Object_;
 use TCPDF;
@@ -22,6 +23,7 @@ class PrintController extends Controller
 {
     public function __construct()
     {
+        $this->appUrl = env('APP_URL') ?? 'http://localhost';
         $this->fontArial = TCPDF_FONTS::addTTFfont('fonts/arial.ttf', 'TrueTypeUnicode', '', 96);
         $this->fontArialBold = TCPDF_FONTS::addTTFfont('fonts/arialbd.ttf', 'TrueTypeUnicode', '', 96);
         $this->fontArialItalic = TCPDF_FONTS::addTTFfont('fonts/ariali.ttf', 'TrueTypeUnicode', '', 96);
@@ -183,6 +185,18 @@ class PrintController extends Controller
         }
 
         return $dates;
+    }
+
+    private function getUserESignature($id)
+    {
+        $user = User::find($id);
+
+        if (!empty($user->esig)) {
+            $publicPath = str_replace("$this->appUrl/", '', $user->esig);
+            return $publicPath;
+        }
+
+        return null;
     }
 
     private function getSignatory($signatoryId, $signatoryType) : Object
@@ -400,6 +414,7 @@ class PrintController extends Controller
                                 'draweeBank'        => $draweeBank,
                                 'checkNo'           => $checkNo,
                                 'checkDate'         => $checkDate,
+                                'personnelId'       => $or->accountablePersonnel->id,
                                 'personnelName'     => $personnelName,
                                 'isCancelled'       => $isCancelled
                             ];
@@ -441,6 +456,7 @@ class PrintController extends Controller
                     draweeBank: $or->draweeBank,
                     checkNo: $or->checkNo,
                     checkDate: $or->checkDate,
+                    personnelId: $or->personnelId,
                     personnelName: $or->personnelName,
                     isCancelled: $or->isCancelled
                 );
@@ -2025,6 +2041,7 @@ class PrintController extends Controller
         $draweeBank,
         $checkNo,
         $checkDate,
+        $personnelId,
         $personnelName,
         $isCancelled = false
     ) : void
@@ -2122,6 +2139,20 @@ class PrintController extends Controller
         $pdf->Cell(1.85, 0, '', 0, 0, 'L');
         $pdf->Cell(1.75, 0, $personnelName, 0, 1, 'C');
 
+        $esig = $this->getUserESignature($personnelId);
+
+        if ($esig && $hasTemplate) {
+            $pdf->Image(
+                $esig,
+                $x + 2.4,
+                $pdf->GetY() - 0.5,
+                w: 1,
+                type: 'PNG',
+                resize: true,
+                dpi: 500
+            );
+        }
+
         if ($isCancelled) {
             $pdf->SetXY($x + ($w * 0.123), ($y + $h * 0.47));
             $pdf->SetTextColor(255,109,109);
@@ -2157,6 +2188,7 @@ class PrintController extends Controller
         );
         $amount = number_format($officialReceipt->amount, 2);
         $amountInWords = strtoupper($officialReceipt->amount_words);
+        $personnelId = $officialReceipt->accountablePersonnel->id;
         $personnelName = strtoupper(
             $officialReceipt->accountablePersonnel->first_name . ' ' .
             $officialReceipt->accountablePersonnel->last_name
@@ -2204,6 +2236,7 @@ class PrintController extends Controller
             draweeBank: $draweeBank,
             checkNo: $checkNo,
             checkDate: $checkDate,
+            personnelId: $personnelId,
             personnelName: $personnelName
         );
 
