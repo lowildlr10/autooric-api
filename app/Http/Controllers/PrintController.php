@@ -2144,9 +2144,9 @@ class PrintController extends Controller
         if ($esig && $hasTemplate) {
             $pdf->Image(
                 $esig,
-                $x + 2.4,
+                $x + 2.7,
                 $pdf->GetY() - 0.6,
-                w: 1,
+                h: 0.6,
                 type: 'PNG',
                 resize: true,
                 dpi: 500
