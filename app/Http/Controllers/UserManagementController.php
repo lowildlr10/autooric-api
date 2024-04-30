@@ -353,7 +353,7 @@ class UserManagementController extends Controller
     {
         $appUrl = env('APP_URL') ?? 'http://localhost';
 
-        $width = 100;
+        $width = 150;
         $image = Image::read($base64Data)->scale($width);
 
         $filename = "$imageName.png";
