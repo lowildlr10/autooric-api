@@ -946,7 +946,7 @@ class PrintController extends Controller
                         align="center"
                         rowspan="'.$rowSpan.'"
                         style="font-family:helvetica;font-weight:bold;vertical-align:middle;"
-                    >RFU-COR</td>' : '') . '
+                    ></td>' : '') . '
                     <td
                         width="27.7%"
                         align="left"
@@ -968,7 +968,27 @@ class PrintController extends Controller
 
                 $htmlTable .= '</table>';
 
+                $lastY = $pdf->GetY();
+
                 $pdf->writeHTML($htmlTable, ln: false);
+
+                $originalX = $pdf->GetX();
+                $originalY = $pdf->GetY();
+
+                $pdf->setXY($pdf->GetX(), $lastY);
+
+                $pdf->SetFont($this->fontArialBold, 'B', 10);
+                $pdf->Cell(
+                    $paperWidthWithMargin * 0.15,
+                    $originalY - $lastY,
+                    'RFU-COR',
+                    border: 0,
+                    align: 'C'
+                );
+                $pdf->SetFont($this->fontArialNarrow, '', 10);
+
+                // Reset XY
+                $pdf->setXY($originalX, $originalY);
 
                 $tableFooterColor = '#e3eeda';
                 $htmlTable = '<table border="1" cellpadding="2"><tr>
