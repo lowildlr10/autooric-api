@@ -36,6 +36,7 @@ class OfficialReceiptController extends Controller
                 $from = $searchData[0] === '*' ? '*' : date_format(date_create($searchData[0]), 'Y-m-d');
                 $to = $searchData[1] === '*' ? '*' : date_format(date_create($searchData[1]), 'Y-m-d');
                 $particulars = $searchData[2] === '*' ? '' : $searchData[2];
+                $searchTag = trim($searchData[3]);
 
                 if ($from !== '*' && $to !== '*') {
                     $officialReceipts = $officialReceipts
@@ -45,6 +46,39 @@ class OfficialReceiptController extends Controller
                 if ($particulars) {
                     $officialReceipts = $officialReceipts
                         ->whereRelation('natureCollection', 'id', $particulars);
+                }
+
+                if ($searchTag) {
+                    $officialReceipts = $officialReceipts
+                        ->where(function($query) use ($searchTag) {
+                            $query->where('receipt_date', 'LIKE', "%$searchTag%")
+                                ->orWhere('deposited_date', 'LIKE', "%$searchTag%")
+                                ->orWhere('cancelled_date', 'LIKE', "%$searchTag%")
+                                ->orWhere('or_no', 'LIKE', "%$searchTag%")
+                                ->orWhere('amount', 'LIKE', "%$searchTag%")
+                                ->orWhere('deposit', 'LIKE', "%$searchTag%")
+                                ->orWhere('amount_words', 'LIKE', "%$searchTag%")
+                                ->orWhere('card_no', 'LIKE', "%$searchTag%")
+                                ->orWhere('payment_mode', 'LIKE', "%$searchTag%")
+                                ->orWhere('drawee_bank', 'LIKE', "%$searchTag%")
+                                ->orWhere('check_no', 'LIKE', "%$searchTag%")
+                                ->orWhere('check_date', 'LIKE', "%$searchTag%")
+                                ->orWhereRelation('discount', 'discount_name', 'LIKE', "%$searchTag%")
+                                ->orWhereRelation('natureCollection', 'particular_name', 'LIKE', "%$searchTag%")
+                                ->orWhereRelation('payor', 'payor_name', 'LIKE', "%$searchTag%")
+                                ->orWhereRelation('cancelledBy', function($query) use ($searchTag) {
+                                    $query->where('first_name', 'LIKE', "%$searchTag%")
+                                        ->orWhere('last_name', 'LIKE', "%$searchTag%");
+                                })
+                                ->orWhereRelation('depositedBy', function($query) use ($searchTag) {
+                                    $query->where('first_name', 'LIKE', "%$searchTag%")
+                                        ->orWhere('last_name', 'LIKE', "%$searchTag%");
+                                })
+                                ->orWhereRelation('accountablePersonnel', function($query) use ($searchTag) {
+                                    $query->where('first_name', 'LIKE', "%$searchTag%")
+                                        ->orWhere('last_name', 'LIKE', "%$searchTag%");
+                                });
+                        });
                 }
             }
         } catch (\Throwable $th) {}
